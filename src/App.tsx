@@ -6,6 +6,9 @@ import { Dashboard } from './components/Dashboard';
 import { Feed } from './components/Feed';
 import { Profile } from './components/Profile';
 import { UploadPost } from './components/UploadPost';
+import { PostView } from './components/PostView';
+import { SessionExpiredDialog } from './components/SessionExpiredDialog';
+import { SessionExpiredProvider, useSessionExpired } from './context/SessionExpiredContext';
 import { Toaster } from './components/ui/sonner';
 import { OutstagramAPI } from './services/api';
 import type { User as ApiUser } from './services/api';
@@ -19,13 +22,14 @@ const LoadingSpinner = () => (
   </div>
 );
 
-type Screen = 'dashboard' | 'feed' | 'profile' | 'upload';
+type Screen = 'dashboard' | 'feed' | 'profile' | 'upload' | 'postView';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<ApiUser | null>(null);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
   useEffect(() => {
     const token = Cookies.get('outstagram_token');
@@ -50,80 +54,110 @@ export default function App() {
     setCurrentUser(null);
   };
 
-  const renderScreen = () => {
-    if (!currentUser) return <Dashboard user={{} as ApiUser} />;
-    switch (currentScreen) {
-      case 'dashboard':
-        return <Dashboard user={currentUser} />;
-      case 'feed':
-        return <Feed />;
-      case 'profile':
-        return <Profile user={currentUser} onLogout={handleLogout} />;
-      case 'upload':
-        return <UploadPost user={currentUser} />;
-      default:
-        return <Dashboard user={currentUser} />;
-    }
+  const handleNavigateToPost = (postId: string) => {
+    setSelectedPostId(postId);
+    setCurrentScreen('postView');
   };
 
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
+  const AppContent = () => {
+    const { isSessionExpired, showSessionExpiredDialog, hideSessionExpiredDialog } = useSessionExpired();
 
-  if (!isAuthenticated) {
+    useEffect(() => {
+      const handleSessionExpired = () => {
+        showSessionExpiredDialog();
+      };
+
+      window.addEventListener('sessionExpired', handleSessionExpired);
+
+      return () => {
+        window.removeEventListener('sessionExpired', handleSessionExpired);
+      };
+    }, [showSessionExpiredDialog]);
+
+    const renderScreen = () => {
+      if (!currentUser) return <Dashboard user={{} as ApiUser} onNavigateToPost={handleNavigateToPost} />;
+      switch (currentScreen) {
+        case 'dashboard':
+          return <Dashboard user={currentUser} onNavigateToPost={handleNavigateToPost} />;
+        case 'feed':
+          return <Feed />;
+        case 'profile':
+          return <Profile user={currentUser} onLogout={handleLogout} onNavigateToPost={handleNavigateToPost} />;
+        case 'upload':
+          return <UploadPost user={currentUser} />;
+        case 'postView':
+          return <PostView postId={selectedPostId!} onBack={() => setCurrentScreen('dashboard')} />;
+        default:
+          return <Dashboard user={currentUser} onNavigateToPost={handleNavigateToPost} />;
+      }
+    };
+
+    if (isLoading) {
+      return <LoadingSpinner />;
+    }
+
+    if (!isAuthenticated) {
+      return (
+        <>
+          <Login onLoginSuccess={handleLoginSuccess} />
+          <Toaster />
+        </>
+      );
+    }
+
     return (
-      <>
-        <Login onLoginSuccess={handleLoginSuccess} />
+      <div className="min-h-screen bg-background text-foreground">
+        {/* Main Content */}
+        <div className="pb-20">
+          {renderScreen()}
+        </div>
+
+        {/* Bottom Navigation */}
+        <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-2">
+          <div className="flex justify-around items-center max-w-md mx-auto">
+            <button
+              onClick={() => setCurrentScreen('dashboard')}
+              className={`p-3 transition-colors ${
+                currentScreen === 'dashboard' ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              <Home className="w-6 h-6" />
+            </button>
+            <button
+              onClick={() => setCurrentScreen('feed')}
+              className={`p-3 transition-colors ${
+                currentScreen === 'feed' ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              <Search className="w-6 h-6" />
+            </button>
+            <button
+              onClick={() => setCurrentScreen('upload')}
+              className={`p-3 transition-colors ${
+                currentScreen === 'upload' ? 'text-accent' : 'text-muted-foreground'
+              }`}
+            >
+              <Plus className="w-6 h-6" />
+            </button>
+            <button
+              onClick={() => setCurrentScreen('profile')}
+              className={`p-3 transition-colors ${
+                currentScreen === 'profile' ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              <User className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
         <Toaster />
-      </>
+        <SessionExpiredDialog isOpen={isSessionExpired} onClose={hideSessionExpiredDialog} />
+      </div>
     );
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Main Content */}
-      <div className="pb-20">
-        {renderScreen()}
-      </div>
-
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-2">
-        <div className="flex justify-around items-center max-w-md mx-auto">
-          <button
-            onClick={() => setCurrentScreen('dashboard')}
-            className={`p-3 transition-colors ${
-              currentScreen === 'dashboard' ? 'text-primary' : 'text-muted-foreground'
-            }`}
-          >
-            <Home className="w-6 h-6" />
-          </button>
-          <button
-            onClick={() => setCurrentScreen('feed')}
-            className={`p-3 transition-colors ${
-              currentScreen === 'feed' ? 'text-primary' : 'text-muted-foreground'
-            }`}
-          >
-            <Search className="w-6 h-6" />
-          </button>
-          <button
-            onClick={() => setCurrentScreen('upload')}
-            className={`p-3 transition-colors ${
-              currentScreen === 'upload' ? 'text-accent' : 'text-muted-foreground'
-            }`}
-          >
-            <Plus className="w-6 h-6" />
-          </button>
-          <button
-            onClick={() => setCurrentScreen('profile')}
-            className={`p-3 transition-colors ${
-              currentScreen === 'profile' ? 'text-primary' : 'text-muted-foreground'
-            }`}
-          >
-            <User className="w-6 h-6" />
-          </button>
-        </div>
-      </div>
-      <Toaster />
-    </div>
+    <SessionExpiredProvider>
+      <AppContent />
+    </SessionExpiredProvider>
   );
 }

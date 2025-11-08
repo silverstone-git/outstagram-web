@@ -1,5 +1,7 @@
 import Cookies from 'js-cookie';
 
+import { fetchWithHandling, handleResponse } from './handle-response';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
 // Development mode flag - set to false when real API is available
@@ -125,6 +127,11 @@ export interface FollowRequest {
   requester_username: string;
 }
 
+export interface MediaUploadResponse {
+  object_key: string;
+  presigned_url: string;
+}
+
 // API service class
 export class OutstagramAPI {
   private static getAuthToken(): string | undefined {
@@ -224,7 +231,7 @@ export class OutstagramAPI {
   }
 
   // Authentication
-  static async login(credentials: LoginCredentials): Promise<AuthResponse> {
+  static async login(credentials: LoginCredentials): Promise<AuthResponse | null> {
     if (USE_MOCK_API) {
       await this.delay();
       
@@ -248,7 +255,7 @@ export class OutstagramAPI {
     formData.append('username', credentials.username);
     formData.append('password', credentials.password);
 
-    const response = await fetch(`${API_BASE_URL}/login`, {
+    const response = await fetchWithHandling(`${API_BASE_URL}/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -256,16 +263,14 @@ export class OutstagramAPI {
       body: formData,
     });
 
-    if (!response.ok) {
-      throw new Error('Login failed');
+    const data = await handleResponse<AuthResponse>(response);
+    if (data) {
+      this.setAuthToken(data.access_token);
     }
-
-    const data = await response.json();
-    this.setAuthToken(data.access_token);
     return data;
   }
 
-  static async register(userData: RegisterData): Promise<RegisterResponse> {
+  static async register(userData: RegisterData): Promise<RegisterResponse | null> {
     if (USE_MOCK_API) {
       await this.delay();
       
@@ -277,7 +282,7 @@ export class OutstagramAPI {
       };
     }
 
-    const response = await fetch(`${API_BASE_URL}/register`, {
+    const response = await fetchWithHandling(`${API_BASE_URL}/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -285,15 +290,11 @@ export class OutstagramAPI {
       body: JSON.stringify(userData),
     });
 
-    if (!response.ok) {
-      throw new Error('Registration failed');
-    }
-
-    return response.json();
+    return handleResponse<RegisterResponse>(response);
   }
 
   // Posts
-  static async createPost(postData: CreatePostData): Promise<Post> {
+  static async createPost(postData: CreatePostData): Promise<Post | null> {
     if (USE_MOCK_API) {
       await this.delay();
       
@@ -315,52 +316,83 @@ export class OutstagramAPI {
       return newPost;
     }
 
-    const response = await fetch(`${API_BASE_URL}/posts`, {
+    const response = await fetchWithHandling(`${API_BASE_URL}/posts`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify(postData),
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to create post');
-    }
-
-    return response.json();
+    return handleResponse<Post>(response);
   }
 
-  static async uploadImages(files: File[]): Promise<{ url: string }[]> {
+  static async uploadImages(files: File[]): Promise<MediaUrl[] | null> {
     if (USE_MOCK_API) {
       await this.delay(1000); // Simulate longer upload time
       
       // Return mock URLs for uploaded files
-      return files.map((_, index) => ({
-        url: `https://images.unsplash.com/photo-1434030216411-0b793f4b4173?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdHVkZW50JTIwc3R1ZHlpbmd8ZW58MXx8fHwxNzU4NjEyMzYwfDA&ixlib=rb-4.1.0&q=80&w=1080&mock=${index}`
-      }));
+      return files.map((file, index) => {
+          const isVideo = file.type.startsWith('video');
+          return {
+              url: `https://images.unsplash.com/photo-1434030216411-0b793f4b4173?mock=${index}`,
+              media_type: isVideo ? 'video' : 'image'
+          }
+      });
+    }
+
+    if (files.length === 0) {
+        return [];
     }
 
     const formData = new FormData();
-    files.forEach(file => {
-      formData.append('files', file);
-    });
-
     const token = this.getAuthToken();
-    const response = await fetch(`${API_BASE_URL}/upload-images`, {
-      method: 'POST',
-      headers: {
+    const headers = {
         'Accept': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
-      body: formData,
-    });
+    };
 
-    if (!response.ok) {
-      throw new Error('Failed to upload images');
+    const getMediaType = (fileName: string): 'image' | 'video' => {
+        const extension = fileName.split('.').pop()?.toLowerCase();
+        if (extension && ['mp4', 'mov', 'avi', 'webm'].includes(extension)) {
+            return 'video';
+        }
+        return 'image';
+    };
+
+    if (files.length === 1) {
+        formData.append('file', files[0]);
+        const response = await fetchWithHandling(`${API_BASE_URL}/media-upload`, {
+            method: 'POST',
+            headers,
+            body: formData,
+        });
+
+        const result = await handleResponse<MediaUploadResponse>(response);
+        if (!result) return null;
+        return [{
+            url: result.presigned_url,
+            media_type: getMediaType(result.object_key),
+        }];
+    } else {
+        files.forEach(file => {
+            formData.append('files', file);
+        });
+
+        const response = await fetchWithHandling(`${API_BASE_URL}/media-upload/bulk`, {
+            method: 'POST',
+            headers,
+            body: formData,
+        });
+
+        const results = await handleResponse<MediaUploadResponse[]>(response);
+        if (!results) return null;
+        return results.map(result => ({
+            url: result.presigned_url,
+            media_type: getMediaType(result.object_key),
+        }));
     }
-
-    return response.json();
   }
 
-  static async getFeed(page: number = 1, category?: string): Promise<Post[]> {
+  static async getFeed(page: number = 1, category?: string): Promise<Post[] | null> {
     if (USE_MOCK_API) {
       await this.delay();
       
@@ -379,18 +411,14 @@ export class OutstagramAPI {
       params.append('category', category);
     }
 
-    const response = await fetch(`${API_BASE_URL}/feed?${params}`, {
+    const response = await fetchWithHandling(`${API_BASE_URL}/feed?${params}`, {
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch feed');
-    }
-
-    return response.json();
+    return handleResponse<Post[]>(response);
   }
 
-  static async likePost(postId: string): Promise<Like> {
+  static async likePost(postId: string): Promise<Like | null> {
     if (USE_MOCK_API) {
       await this.delay(200);
       
@@ -401,71 +429,65 @@ export class OutstagramAPI {
       };
     }
 
-    const response = await fetch(`${API_BASE_URL}/posts/${postId}/like`, {
+    const response = await fetchWithHandling(`${API_BASE_URL}/posts/${postId}/like`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to like post');
-    }
-
-    return response.json();
+    return handleResponse<Like>(response);
   }
 
-  static async commentOnPost(postId: string, content: string): Promise<Comment> {
-    const response = await fetch(`${API_BASE_URL}/posts/${postId}/comment`, {
+  static async unlikePost(postId: string): Promise<void | null> {
+    if (USE_MOCK_API) {
+      await this.delay(200);
+      return;
+    }
+
+    const response = await fetchWithHandling(`${API_BASE_URL}/posts/${postId}/like`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    });
+
+    return handleResponse(response);
+  }
+
+  static async commentOnPost(postId: string, content: string): Promise<Comment | null> {
+    const response = await fetchWithHandling(`${API_BASE_URL}/posts/${postId}/comment`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
       body: JSON.stringify({ content }),
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to comment on post');
-    }
-
-    return response.json();
+    return handleResponse<Comment>(response);
   }
 
-  static async getPostLikes(postId: string, page: number = 1): Promise<Like[]> {
-    const response = await fetch(`${API_BASE_URL}/posts/${postId}/likes/${page}`, {
+  static async getPostLikes(postId: string, page: number = 1): Promise<Like[] | null> {
+    const response = await fetchWithHandling(`${API_BASE_URL}/posts/${postId}/likes/${page}`, {
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch post likes');
-    }
-
-    return response.json();
+    return handleResponse<Like[]>(response);
   }
 
-  static async getPostComments(postId: string, page: number = 1): Promise<Comment[]> {
-    const response = await fetch(`${API_BASE_URL}/posts/${postId}/comments/${page}`, {
+  static async getPostComments(postId: string, page: number = 1): Promise<Comment[] | null> {
+    const response = await fetchWithHandling(`${API_BASE_URL}/posts/${postId}/comments/${page}`, {
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch post comments');
-    }
-
-    return response.json();
+    return handleResponse<Comment[]>(response);
   }
 
-  static async getPost(postId: string): Promise<Post> {
-    const response = await fetch(`${API_BASE_URL}/posts/${postId}`, {
+  static async getPost(postId: string): Promise<Post | null> {
+    const response = await fetchWithHandling(`${API_BASE_URL}/posts/${postId}`, {
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch post');
-    }
-
-    return response.json();
+    return handleResponse<Post>(response);
   }
 
   // Exams
-  static async createExam(examData: ExamData): Promise<Exam> {
-    const response = await fetch(`${API_BASE_URL}/pariksha`, {
+  static async createExam(examData: ExamData): Promise<Exam | null> {
+    const response = await fetchWithHandling(`${API_BASE_URL}/pariksha`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -473,35 +495,23 @@ export class OutstagramAPI {
       body: JSON.stringify(examData),
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to create exam');
-    }
-
-    return response.json();
+    return handleResponse<Exam>(response);
   }
 
-  static async getExams(page: number = 1): Promise<Exam[]> {
-    const response = await fetch(`${API_BASE_URL}/pariksha?page=${page}`);
+  static async getExams(page: number = 1): Promise<Exam[] | null> {
+    const response = await fetchWithHandling(`${API_BASE_URL}/pariksha?page=${page}`);
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch exams');
-    }
-
-    return response.json();
+    return handleResponse<Exam[]>(response);
   }
 
-  static async getExam(examId: string): Promise<Exam> {
-    const response = await fetch(`${API_BASE_URL}/pariksha/${examId}`);
+  static async getExam(examId: string): Promise<Exam | null> {
+    const response = await fetchWithHandling(`${API_BASE_URL}/pariksha/${examId}`);
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch exam');
-    }
-
-    return response.json();
+    return handleResponse<Exam>(response);
   }
 
   // Dashboard
-  static async getDashboard(page: number = 1): Promise<Post[]> {
+  static async getDashboard(page: number = 1): Promise<Post[] | null> {
     if (USE_MOCK_API) {
       await this.delay();
       
@@ -524,77 +534,53 @@ export class OutstagramAPI {
       ];
     }
 
-    const response = await fetch(`${API_BASE_URL}/dashboard/${page}`, {
+    const response = await fetchWithHandling(`${API_BASE_URL}/dashboard/${page}`, {
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch dashboard');
-    }
-
-    return response.json();
+    return handleResponse<Post[]>(response);
   }
 
   // User operations
-  static async followUser(username: string): Promise<{ message: string }> {
-    const response = await fetch(`${API_BASE_URL}/users/${username}/follow`, {
+  static async followUser(username: string): Promise<{ message: string } | null> {
+    const response = await fetchWithHandling(`${API_BASE_URL}/users/${username}/follow`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to follow user');
-    }
-
-    return response.json();
+    return handleResponse<{ message: string }>(response);
   }
 
-  static async getUserProfile(username: string): Promise<UserProfile> {
-    const response = await fetch(`${API_BASE_URL}/users/${username}`, {
+  static async getUserProfile(username: string): Promise<UserProfile | null> {
+    const response = await fetchWithHandling(`${API_BASE_URL}/users/${username}`, {
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch user profile');
-    }
-
-    return response.json();
+    return handleResponse<UserProfile>(response);
   }
 
-  static async getUserPosts(username: string, page: number = 1): Promise<Post[]> {
-    const response = await fetch(`${API_BASE_URL}/users/${username}/posts/${page}`, {
+  static async getUserPosts(username: string, page: number = 1): Promise<Post[] | null> {
+    const response = await fetchWithHandling(`${API_BASE_URL}/users/${username}/posts/${page}`, {
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch user posts');
-    }
-
-    return response.json();
+    return handleResponse<Post[]>(response);
   }
 
-  static async getFollowRequests(): Promise<FollowRequest[]> {
-    const response = await fetch(`${API_BASE_URL}/follow-requests`, {
+  static async getFollowRequests(): Promise<FollowRequest[] | null> {
+    const response = await fetchWithHandling(`${API_BASE_URL}/follow-requests`, {
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch follow requests');
-    }
-
-    return response.json();
+    return handleResponse<FollowRequest[]>(response);
   }
 
-  static async approveFollowRequest(requestId: number): Promise<{ user1_id: number; user2_id: number; being_followed: number; datetime_friended: string }> {
-    const response = await fetch(`${API_BASE_URL}/request-approve/${requestId}`, {
+  static async approveFollowRequest(requestId: number): Promise<{ user1_id: number; user2_id: number; being_followed: number; datetime_friended: string } | null> {
+    const response = await fetchWithHandling(`${API_BASE_URL}/request-approve/${requestId}`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to approve follow request');
-    }
-
-    return response.json();
+    return handleResponse<{ user1_id: number; user2_id: number; being_followed: number; datetime_friended: string }>(response);
   }
 }

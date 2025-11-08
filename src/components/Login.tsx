@@ -33,9 +33,13 @@ function Login({ onLoginSuccess }: LoginProps) {
     setIsLoading(true);
     try {
       const response = await OutstagramAPI.login(loginForm);
+      if (!response) {
+        toast.error('Login failed. No user data received.');
+        return;
+      }
       toast.success('Login successful!');
       onLoginSuccess(response.user);
-    } catch (error) {
+    } catch {
       toast.error('Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
@@ -53,8 +57,12 @@ function Login({ onLoginSuccess }: LoginProps) {
         username: registerForm.username,
         password: registerForm.password,
       });
+      if (!response) {
+        toast.error('Auto-login failed after registration. Please try logging in manually.');
+        return;
+      }
       onLoginSuccess(response.user);
-    } catch (error) {
+    } catch {
       toast.error('Registration failed. Please try again.');
     } finally {
       setIsLoading(false);

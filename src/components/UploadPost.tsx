@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Camera, Image, X, Sparkles, Hash, MapPin, Users, Trophy, BookOpen, GraduationCap, Award, Star } from 'lucide-react';
+import { Camera, Image, X, Sparkles, Hash, MapPin, Users, Trophy, BookOpen, GraduationCap, Award, Star, Video } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
@@ -10,19 +10,25 @@ import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { toast } from 'sonner';
 import { OutstagramAPI } from '../services/api';
-import type { User as ApiUser, CreatePostData, MediaUrl } from '../services/api';
+import type { User as ApiUser, CreatePostData } from '../services/api';
+import type { PostCategory } from '../types/post';
 
 interface UploadPostProps {
   user: ApiUser;
 }
 
+interface FilePreview {
+  url: string;
+  type: 'image' | 'video';
+}
+
 function UploadPost({ user }: UploadPostProps) {
   const [caption, setCaption] = useState('');
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [previews, setPreviews] = useState<FilePreview[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [hashtags, setHashtags] = useState('');
   const [location, setLocation] = useState('');
-  const [postCategory, setPostCategory] = useState('general');
+  const [postCategory, setPostCategory] = useState<PostCategory>("tech");
   const [isHighlighted, setIsHighlighted] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [examData, setExamData] = useState({
@@ -32,14 +38,12 @@ function UploadPost({ user }: UploadPostProps) {
     grade: ''
   });
 
-  // Cleanup object URLs when component unmounts or image changes
+  // Cleanup object URLs when component unmounts or files change
   useEffect(() => {
     return () => {
-      if (selectedImage && selectedImage.startsWith('blob:')) {
-        URL.revokeObjectURL(selectedImage);
-      }
+      previews.forEach(preview => URL.revokeObjectURL(preview.url));
     };
-  }, [selectedImage]);
+  }, [previews]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -49,46 +53,49 @@ function UploadPost({ user }: UploadPostProps) {
         
         // Validate file types and sizes
         const validFiles = fileArray.filter(file => {
-          const isValidType = file.type.startsWith('image/');
-          const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB limit
+          const isValidType = file.type.startsWith('image/') || file.type.startsWith('video/');
+          const isValidSize = file.size <= 50 * 1024 * 1024; // 50MB limit for videos
+          if (!isValidType) toast.warning(`File type not supported: ${file.name}`);
+          if (!isValidSize) toast.warning(`File size exceeds 50MB: ${file.name}`);
           return isValidType && isValidSize;
         });
         
-        if (validFiles.length !== fileArray.length) {
-          toast.warning('Some files were skipped. Please only select images under 10MB.');
-        }
-        
-        setSelectedFiles(validFiles);
-        if (validFiles.length > 0) {
-          // Create preview URL for the first image
-          const previewUrl = URL.createObjectURL(validFiles[0]);
-          setSelectedImage(previewUrl);
-        }
+        setSelectedFiles(prev => [...prev, ...validFiles]);
+
+        const newPreviews = validFiles.map(file => ({
+          url: URL.createObjectURL(file),
+          type: (file.type.startsWith('image/') ? 'image' : 'video') as 'image' | 'video'
+        }));
+        setPreviews(prev => [...prev, ...newPreviews]);
       }
-    } catch (error) {
+    } catch {
       toast.error('Error selecting files. Please try again.');
     }
   };
 
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setPreviews(prev => {
+      const newPreviews = prev.filter((_, i) => i !== index);
+      URL.revokeObjectURL(previews[index].url);
+      return newPreviews;
+    });
+  };
+
   const handleShare = async () => {
-    if (!selectedImage || !caption.trim()) return;
+    if (selectedFiles.length === 0 || !caption.trim()) return;
 
     setIsUploading(true);
     try {
-      let mediaUrls: MediaUrl[] = [];
-
-      // Upload files if local files are selected
-      if (selectedFiles.length > 0) {
-        const uploadResult = await OutstagramAPI.uploadImages(selectedFiles);
-        mediaUrls = uploadResult.map(item => ({
-          url: item.url,
-          media_type: 'image' as const
-        }));
+      const mediaUrls = await OutstagramAPI.uploadImages(selectedFiles);
+      if (!mediaUrls) {
+        toast.error('Failed to upload media. Please try again.');
+        return;
       }
 
       // Enhance caption with exam data if it's an exam result post
       let enhancedCaption = caption;
-      if (postCategory === 'exam_result' && examData.subject && examData.score && examData.totalMarks) {
+      if (postCategory === "exam_result" && examData.subject && examData.score && examData.totalMarks) {
         const percentage = ((parseFloat(examData.score) / parseFloat(examData.totalMarks)) * 100).toFixed(1);
         enhancedCaption += `\n\n📊 ${examData.subject} Result: ${examData.score}/${examData.totalMarks} (${percentage}%)`;
         if (examData.grade) {
@@ -96,40 +103,46 @@ function UploadPost({ user }: UploadPostProps) {
         }
       }
 
+      const postCategoryLabel = postCategories.find(c => c.value === postCategory)?.label || postCategory;
+
       const postData: CreatePostData = {
         media_urls: mediaUrls,
         highlighted_by_author: isHighlighted,
         caption: `${enhancedCaption} ${hashtags}`,
-        post_category: postCategory,
+        post_category: postCategoryLabel,
       };
 
       await OutstagramAPI.createPost(postData);
       
       // Reset form
       setCaption('');
-      setSelectedImage(null);
+      setPreviews([]);
       setSelectedFiles([]);
       setHashtags('');
       setLocation('');
-      setPostCategory('general');
+      setPostCategory("tech");
       setIsHighlighted(false);
       setExamData({ subject: '', score: '', totalMarks: '', grade: '' });
 
       toast.success('Post shared successfully! 🎉');
-    } catch (error) {
+    } catch {
       toast.error('Failed to share post. Please try again.');
     } finally {
       setIsUploading(false);
     }
   };
-
+  
   const postCategories = [
-    { value: 'general', label: '🌟 General', icon: Sparkles },
-    { value: 'academic', label: '📚 Academic', icon: BookOpen },
-    { value: 'achievement', label: '🏆 Achievement', icon: Trophy },
-    { value: 'study_group', label: '👥 Study Group', icon: Users },
-    { value: 'exam_result', label: '📊 Exam Result', icon: GraduationCap },
-    { value: 'project', label: '💡 Project', icon: Award },
+    { value: "tech", label: "Technology", icon: Sparkles },
+    { value: "entertainment", label: "Entertainment", icon: Video },
+    { value: "business", label: "Business", icon: Award },
+    { value: "vlog", label: "Vlog", icon: Camera },
+    { value: "lifestyle", label: "Lifestyle", icon: Users },
+    { value: "academic", label: "Academic", icon: BookOpen },
+    { value: "achievement", label: "Achievement", icon: Trophy },
+    { value: "study_group", label: "Study Group", icon: Users },
+    { value: "exam_result", label: "Exam Result", icon: GraduationCap },
+    { value: "project", label: "Project", icon: Award },
   ];
 
   const studentHashtags = [
@@ -137,7 +150,7 @@ function UploadPost({ user }: UploadPostProps) {
     '#StudyGroup', '#ProjectWork', '#CampusLife', '#StudentSuccess'
   ];
 
-  const trendingHashtags = postCategory === 'academic' || postCategory === 'exam_result' || postCategory === 'achievement' 
+  const trendingHashtags = postCategory === "academic" || postCategory === "exam_result" || postCategory === "achievement" 
     ? studentHashtags 
     : ['#GenZVibes', '#AestheticLife', '#PlantParent', '#FoodieLife', '#SelfCare', '#Mindful'];
 
@@ -150,7 +163,7 @@ function UploadPost({ user }: UploadPostProps) {
           <Button 
             onClick={handleShare}
             className="bg-accent hover:bg-accent/90 text-accent-foreground"
-            disabled={!selectedImage || !caption.trim() || isUploading}
+            disabled={previews.length === 0 || !caption.trim() || isUploading}
           >
             {isUploading ? 'Sharing...' : 'Share'}
           </Button>
@@ -175,68 +188,55 @@ function UploadPost({ user }: UploadPostProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-card-foreground">
               <Image className="w-5 h-5 text-primary" />
-              Choose Image
+              Choose Media
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {selectedImage ? (
-              <div className="relative">
-                <div className="aspect-square rounded-xl overflow-hidden">
-                  <img
-                    src={selectedImage}
-                    alt="Selected"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedImage(null)}
-                  className="absolute top-2 right-2 bg-background/80 hover:bg-background/90"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+            {previews.length > 0 ? (
+              <div className="grid grid-cols-3 gap-2">
+                {previews.map((preview, index) => (
+                  <div key={index} className="relative aspect-square rounded-xl overflow-hidden">
+                    {preview.type === 'image' ? (
+                      <img src={preview.url} alt={`Preview ${index}`} className="w-full h-full object-cover" />
+                    ) : (
+                      <video src={preview.url} className="w-full h-full object-cover" />
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeFile(index)}
+                      className="absolute top-1 right-1 bg-background/60 hover:bg-background/80 h-6 w-6"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
               </div>
             ) : (
-              <>
-                {/* Upload Options */}
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="cursor-pointer">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                    <Button variant="outline" className="h-24 border-primary/30 text-primary hover:bg-primary/10 w-full" asChild>
-                      <div className="flex flex-col items-center gap-2">
-                        <Camera className="w-6 h-6" />
-                        <span className="text-sm">Camera</span>
-                      </div>
-                    </Button>
-                  </label>
-                  <label className="cursor-pointer">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleFileUpload}
-                      className="hidden"
-                    />
-                    <Button variant="outline" className="h-24 border-primary/30 text-primary hover:bg-primary/10 w-full" asChild>
-                      <div className="flex flex-col items-center gap-2">
-                        <Upload className="w-6 h-6" />
-                        <span className="text-sm">Gallery</span>
-                      </div>
-                    </Button>
-                  </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*,video/*"
+                    multiple
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <div className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-primary/30 text-primary rounded-lg hover:bg-primary/10 transition-colors">
+                    <Camera className="w-6 h-6" />
+                    <span className="text-sm mt-1">Add Media</span>
+                  </div>
+                </label>
+                <div className="flex flex-col items-center justify-center h-24 border-2 border-dashed border-border rounded-lg">
+                  <Video className="w-6 h-6 text-muted-foreground" />
+                  <span className="text-sm mt-1 text-muted-foreground">Live (Soon)</span>
                 </div>
-              </>
+              </div>
             )}
           </CardContent>
         </Card>
 
+        {/* Post Category, Exam Result, Caption, etc. remain the same */}
         {/* Post Category */}
         <Card className="bg-card border-border">
           <CardHeader>
@@ -246,7 +246,7 @@ function UploadPost({ user }: UploadPostProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Select value={postCategory} onValueChange={setPostCategory}>
+            <Select value={postCategory} onValueChange={(value) => setPostCategory(value as PostCategory)}>
               <SelectTrigger className="border-border bg-input-background text-foreground">
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
@@ -262,7 +262,7 @@ function UploadPost({ user }: UploadPostProps) {
         </Card>
 
         {/* Exam Result Input (only for exam_result category) */}
-        {postCategory === 'exam_result' && (
+        {postCategory === "exam_result" && (
           <Card className="bg-gradient-to-r from-accent/20 to-primary/20 border-accent/30">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-card-foreground">
@@ -324,9 +324,9 @@ function UploadPost({ user }: UploadPostProps) {
           <CardContent>
             <Textarea
               placeholder={
-                postCategory === 'exam_result' ? "Share your exam experience! How did you prepare? ✨" :
-                postCategory === 'achievement' ? "Tell us about your achievement! 🏆" :
-                postCategory === 'study_group' ? "Looking for study partners? Share your study plans! 📚" :
+                postCategory === "exam_result" ? "Share your exam experience! How did you prepare? ✨" :
+                postCategory === "achievement" ? "Tell us about your achievement! 🏆" :
+                postCategory === "study_group" ? "Looking for study partners? Share your study plans! 📚" :
                 "What's on your mind? ✨"
               }
               value={caption}
@@ -384,7 +384,7 @@ function UploadPost({ user }: UploadPostProps) {
                     Highlight this post
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    {postCategory === 'achievement' || postCategory === 'exam_result' 
+                    {postCategory === "achievement" || postCategory === "exam_result" 
                       ? 'Showcase your academic success!' 
                       : 'Make this post stand out in your profile'}
                   </p>
@@ -409,8 +409,8 @@ function UploadPost({ user }: UploadPostProps) {
               </div>
               <Input
                 placeholder={
-                  postCategory === 'study_group' ? "Study location (Library, Cafe, etc.)" :
-                  postCategory === 'exam_result' ? "Exam center or school name" :
+                  postCategory === "study_group" ? "Study location (Library, Cafe, etc.)" :
+                  postCategory === "exam_result" ? "Exam center or school name" :
                   "Where was this taken?"
                 }
                 value={location}
@@ -445,7 +445,7 @@ function UploadPost({ user }: UploadPostProps) {
         <Button 
           onClick={handleShare}
           className="w-full bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-primary-foreground"
-          disabled={!selectedImage || !caption.trim() || isUploading}
+          disabled={previews.length === 0 || !caption.trim() || isUploading}
         >
           {isUploading ? (
             <>
@@ -455,9 +455,9 @@ function UploadPost({ user }: UploadPostProps) {
           ) : (
             <>
               <Sparkles className="w-4 h-4 mr-2" />
-              {postCategory === 'exam_result' ? 'Share Your Results! 🎉' :
-               postCategory === 'achievement' ? 'Share Your Achievement! 🏆' :
-               postCategory === 'study_group' ? 'Find Study Buddies! 📚' :
+              {postCategory === "exam_result" ? 'Share Your Results! 🎉' :
+               postCategory === "achievement" ? 'Share Your Achievement! 🏆' :
+               postCategory === "study_group" ? 'Find Study Buddies! 📚' :
                'Share Your Moment ✨'}
             </>
           )}

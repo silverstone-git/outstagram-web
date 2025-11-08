@@ -10,9 +10,10 @@ import type { User as ApiUser, Post } from '../services/api';
 
 interface DashboardProps {
   user: ApiUser;
+  onNavigateToPost: (postId: string) => void;
 }
 
-function Dashboard({ user }: DashboardProps) {
+function Dashboard({ user, onNavigateToPost }: DashboardProps) {
   const [dashboardData, setDashboardData] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userStats, setUserStats] = useState({
@@ -33,6 +34,15 @@ function Dashboard({ user }: DashboardProps) {
     try {
       setIsLoading(true);
       const posts = await OutstagramAPI.getDashboard(1);
+      if (!posts) {
+        setDashboardData([]);
+        setUserStats({
+          posts: 0,
+          achievements: 0,
+          studyGroups: 0
+        });
+        return;
+      }
       setDashboardData(posts);
       
       // Calculate stats from posts
@@ -44,7 +54,7 @@ function Dashboard({ user }: DashboardProps) {
         achievements,
         studyGroups
       });
-    } catch (error) {
+    } catch {
       toast.error('Failed to load dashboard data.');
     } finally {
       setIsLoading(false);
@@ -127,7 +137,7 @@ function Dashboard({ user }: DashboardProps) {
               </div>
             ) : dashboardData.length > 0 ? (
               dashboardData.slice(0, 3).map((post) => (
-                <div key={post.post_id} className="flex items-center gap-3">
+                <div key={post.post_id} className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-secondary/50" onClick={() => onNavigateToPost(post.post_id)}>
                   <div className="w-16 h-16 rounded-xl overflow-hidden relative">
                     {post.media_urls && post.media_urls.length > 0 ? (
                       <ImageWithFallback

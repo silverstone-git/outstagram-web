@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Grid, Heart, Bookmark, LogOut, GraduationCap, Trophy } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
@@ -12,11 +12,29 @@ import type { User as ApiUser, Post } from '../services/api';
 interface ProfileProps {
   user: ApiUser;
   onLogout: () => void;
+  onNavigateToPost: (postId: string) => void;
 }
 
-function Profile({ user, onLogout }: ProfileProps) {
+function Profile({ user, onLogout, onNavigateToPost }: ProfileProps) {
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const loadUserPosts = useCallback(async () => {
+    if (!user) return;
+    try {
+      setIsLoading(true);
+      const posts = await OutstagramAPI.getUserPosts(user.username, 1);
+      if (!posts) {
+        setUserPosts([]);
+        return;
+      }
+      setUserPosts(posts);
+    } catch {
+      toast.error('Failed to load user posts.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -24,20 +42,7 @@ function Profile({ user, onLogout }: ProfileProps) {
     };
     
     loadData();
-  }, [user]);
-
-  const loadUserPosts = async () => {
-    if (!user) return;
-    try {
-      setIsLoading(true);
-      const posts = await OutstagramAPI.getUserPosts(user.username, 1);
-      setUserPosts(posts);
-    } catch (error) {
-      toast.error('Failed to load user posts.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [user, loadUserPosts]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -156,7 +161,7 @@ function Profile({ user, onLogout }: ProfileProps) {
             ) : userPosts.length > 0 ? (
               <div className="grid grid-cols-3 gap-1">
                 {userPosts.map((post) => (
-                  <div key={post.post_id} className="aspect-square overflow-hidden rounded-lg relative">
+                  <div key={post.post_id} className="aspect-square overflow-hidden rounded-lg relative cursor-pointer" onClick={() => onNavigateToPost(post.post_id)}>
                     {post.media_urls && post.media_urls.length > 0 ? (
                       <ImageWithFallback
                         src={post.media_urls[0].url}

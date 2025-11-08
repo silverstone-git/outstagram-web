@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader } from './ui/card';
 import { Button } from './ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { toast } from 'sonner';
 import { OutstagramAPI } from '../services/api';
 import type { Post } from '../services/api';
 
@@ -161,39 +162,57 @@ interface PostContentProps {
   onLike: (postId: string) => void;
 }
 
-const PostContent: React.FC<PostContentProps> = ({ post, onLike }) => (
-  <CardContent className="p-0">
-    {post.media_urls && post.media_urls.length > 0 && (
-      <div className="aspect-square overflow-hidden bg-muted">
-        <ImageWithFallback
-          src={post.media_urls[0].url}
-          alt={`Post by ${post.author}`}
-          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-        />
-      </div>
-    )}
+const PostContent: React.FC<PostContentProps> = ({ post, onLike }) => {
+  const getMediaType = (url: string): 'image' | 'video' => {
+    const extension = url.split('.').pop()?.toLowerCase().split('?')[0];
+    if (extension && ['mp4', 'mov', 'avi', 'webm'].includes(extension)) {
+      return 'video';
+    }
+    return 'image';
+  };
 
-    <div className="p-4">
-      <PostActions post={post} onLike={onLike} />
-
-      {/* Caption */}
-      <div className="text-card-foreground mb-2">
-        <span className="font-medium">@{post.author}</span>{' '}
-        <span className="text-sm">{post.caption}</span>
-      </div>
-
-      {/* Category Badge */}
-      {post.post_category !== 'general' && (
-        <div className="mb-3">
-          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getCategoryStyle(post.post_category)}`}>
-            {getCategoryIcon(post.post_category)}
-            {post.post_category.replace('_', ' ').toUpperCase()}
-          </span>
+  return (
+    <CardContent className="p-0">
+      {post.media_urls && post.media_urls.length > 0 && (
+        <div className="aspect-square overflow-hidden bg-muted">
+          {getMediaType(post.media_urls[0].url) === 'video' ? (
+            <video
+              src={post.media_urls[0].url}
+              controls
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <ImageWithFallback
+              src={post.media_urls[0].url}
+              alt={`Post by ${post.author}`}
+              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+            />
+          )}
         </div>
       )}
-    </div>
-  </CardContent>
-);
+
+      <div className="p-4">
+        <PostActions post={post} onLike={onLike} />
+
+        {/* Caption */}
+        <div className="text-card-foreground mb-2">
+          <span className="font-medium">@{post.author}</span>{' '}
+          <span className="text-sm">{post.caption}</span>
+        </div>
+
+        {/* Category Badge */}
+        {post.post_category !== 'general' && (
+          <div className="mb-3">
+            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getCategoryStyle(post.post_category)}`}>
+              {getCategoryIcon(post.post_category)}
+              {post.post_category.replace('_', ' ').toUpperCase()}
+            </span>
+          </div>
+        )}
+      </div>
+    </CardContent>
+  );
+};
 
 interface PostCardProps {
   post: Post;
@@ -260,7 +279,10 @@ function Feed() {
       setIsLoading(true);
       const feedPosts = await OutstagramAPI.getFeed(page, selectedCategory || undefined);
       
-      setPosts(prevPosts => page === 1 ? feedPosts : [...prevPosts, ...feedPosts]);
+      setPosts(prevPosts => {
+        if (!feedPosts) return page === 1 ? [] : prevPosts;
+        return page === 1 ? feedPosts : [...prevPosts, ...feedPosts];
+      });
       setCurrentPage(page);
     } catch (error) {
       console.error('Error loading feed:', error);
@@ -275,19 +297,27 @@ function Feed() {
   }, [loadFeed]);
 
   const handleLikePost = useCallback(async (postId: string) => {
+    // Optimistic update
+    setPosts(prevPosts => 
+      prevPosts.map(post => 
+        post.post_id === postId 
+          ? { ...post, is_liked: !post.is_liked }
+          : post
+      )
+    );
+    
     try {
-      // Optimistic update
-      setPosts(prevPosts => 
-        prevPosts.map(post => 
-          post.post_id === postId 
-            ? { ...post, is_liked: !post.is_liked }
-            : post
-        )
-      );
-      
-      await OutstagramAPI.likePost(postId);
+      const postToUpdate = posts.find(post => post.post_id === postId);
+      if (!postToUpdate) return;
+
+      if (postToUpdate.is_liked) { // If it was liked, now unliking
+        await OutstagramAPI.unlikePost(postId);
+      } else { // If it was not liked, now liking
+        await OutstagramAPI.likePost(postId);
+      }
     } catch (error) {
-      console.error('Error liking post:', error);
+      console.error('Error liking/unliking post:', error);
+      toast.error(`Failed to ${posts.find(post => post.post_id === postId)?.is_liked ? 'like' : 'unlike'} post.`);
       // Revert optimistic update on error
       setPosts(prevPosts => 
         prevPosts.map(post => 
@@ -297,7 +327,7 @@ function Feed() {
         )
       );
     }
-  }, []);
+  }, [posts]);
 
   const handleCategoryChange = useCallback((category: string) => {
     setSelectedCategory(category);
