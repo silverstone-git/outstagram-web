@@ -101,3 +101,11 @@ We welcome contributions to Froutstagram! To ensure a smooth development process
 ---
 
 *This entire project was vibe coded using the Gemini CLI.*
+
+## AI tutor, plans and theme (2026-11-23)
+
+- **Tutor** (`src/features/exams/QuestionChat.tsx`): streams replies from `POST /exam-attempts/{id}/chat/stream`, renders them with `TutorMarkdown` (react-markdown + remark-gfm + remark-math + rehype-katex). Skill chips pick which knowledge-bank subjects (agentcyto skills) to search. Long-press (touch) or right-click an equation to save it; saved equations and tutor history live on the Exams tab (`TutorLibrary.tsx`).
+- **Paywall** (`src/features/billing/`): `openPaywall()` / `paywallFrom(response)` open one upgrade sheet (mounted in `App.tsx`) on the prompt counter, `429 ai_quota`, `402 tutor_*` and `413 media_too_large`. Pay runs Razorpay Checkout (`checkout.razorpay.com/v1/checkout.js`) and verifies server-side.
+- **Uploads**: photos are compressed in the browser (`src/lib/compress.ts`) before the plan's per-file limit is checked.
+- **Theme**: `src/lib/theme.tsx` toggles `.dark` on `<html>` (dark is the default; light palette in `:root`), remembered in `localStorage` and applied before first paint by a script in `index.html`.
+- **Numbers**: Dashboard and Profile read `GET /me/stats` and `GET /trending`; nothing is hard-coded.
