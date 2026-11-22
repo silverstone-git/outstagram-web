@@ -135,7 +135,8 @@ export function ExamResults({ result, maxScore, attemptId, quota, onQuota, onBac
         <DrawerContent className="h-[85dvh] max-w-3xl mx-auto flex flex-col">
           <DrawerHeader className="text-left pb-2">
             <DrawerTitle>AI tutor</DrawerTitle>
-            <DrawerDescription className="line-clamp-2">{chatFor?.question.replace(/\$+/g, '')}</DrawerDescription>
+            <DrawerDescription className="sr-only">Chat with the AI tutor about this question</DrawerDescription>
+            {chatFor && <div className="text-sm text-muted-foreground line-clamp-2"><Latex>{chatFor.question}</Latex></div>}
           </DrawerHeader>
           {chatFor && <QuestionChat attemptId={attemptId} questionId={chatFor.id} quota={quota} onQuota={onQuota} />}
         </DrawerContent>

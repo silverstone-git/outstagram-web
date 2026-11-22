@@ -73,7 +73,7 @@ const screens = [
     await p.locator('article button[aria-expanded]').first().click();
     await p.getByRole('button', { name: 'Ask the AI tutor' }).click();
     await p.getByRole('button', { name: 'Why is my answer wrong?' }).click();
-    await p.getByText('zero-point energy', { exact: false }).waitFor();
+    await p.getByText('ignores the zero-point energy', { exact: false }).waitFor();
     await p.waitForTimeout(400);
   }],
 ];
