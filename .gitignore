@@ -26,3 +26,6 @@ dist-ssr
 froutstagram_blueprint.md
 .env
 GEMINI.md
+
+e2e/node_modules
+e2e/out

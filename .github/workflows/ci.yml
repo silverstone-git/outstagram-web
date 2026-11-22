@@ -1,0 +1,67 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-screenshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Previews live at https://aryan.cfd/outstagram/; the API defaults to production until
+      # the repo variable PREVIEW_API_BASE_URL points at outsie-staging.
+      VITE_BASE: /outstagram/
+      VITE_API_BASE_URL: ${{ vars.PREVIEW_API_BASE_URL || 'https://outsie.aryan.cfd' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.21
+
+      - name: Install
+        run: bun install
+
+      - name: Lint
+        run: bun run lint
+        continue-on-error: true   # pre-existing lint debt; tighten once clean
+
+      - name: Type-check + build
+        run: bun run build
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Playwright (Chromium)
+        working-directory: e2e
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Screenshots (phone + desktop, mocked API)
+        env:
+          BASE: /outstagram/
+          API: ${{ env.VITE_API_BASE_URL }}
+        run: node e2e/screens.mjs
+
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 14
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: e2e/out
+          retention-days: 14

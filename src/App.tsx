@@ -117,6 +117,7 @@ export default function App() {
           <div className="flex justify-around items-center max-w-md mx-auto">
             <button
               onClick={() => setCurrentScreen('dashboard')}
+              aria-label="Home"
               className={`p-3 transition-colors ${
                 currentScreen === 'dashboard' ? 'text-primary' : 'text-muted-foreground'
               }`}
@@ -125,6 +126,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setCurrentScreen('feed')}
+              aria-label="Explore"
               className={`p-3 transition-colors ${
                 currentScreen === 'feed' ? 'text-primary' : 'text-muted-foreground'
               }`}
@@ -133,6 +135,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setCurrentScreen('upload')}
+              aria-label="New post"
               className={`p-3 transition-colors ${
                 currentScreen === 'upload' ? 'text-accent' : 'text-muted-foreground'
               }`}
@@ -141,6 +144,7 @@ export default function App() {
             </button>
             <button
               onClick={() => setCurrentScreen('profile')}
+              aria-label="Profile"
               className={`p-3 transition-colors ${
                 currentScreen === 'profile' ? 'text-primary' : 'text-muted-foreground'
               }`}
