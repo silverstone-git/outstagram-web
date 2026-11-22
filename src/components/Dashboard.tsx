@@ -51,7 +51,7 @@ function Dashboard({ user, onNavigateToPost, onOpenExams, onCompose }: Dashboard
       <div className="max-w-md mx-auto space-y-6">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-primary truncate">Welcome, {first}! 🎓</h1>
+            <h1 className="text-2xl font-bold text-primary break-words">Welcome, {first}! 🎓</h1>
             <p className="text-muted-foreground">Your study dashboard</p>
           </div>
           <div className="flex shrink-0 items-center gap-1">

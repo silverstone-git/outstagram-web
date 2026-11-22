@@ -85,8 +85,8 @@ export function Paywall({ onManageHistory }: { onManageHistory?: () => void }) {
                     {rows.map(([label, free, prov]) => (
                       <tr key={label} className="border-t border-border">
                         <td className="p-2">{label}</td>
-                        <td className="p-2 text-right tabular-nums text-muted-foreground">{free}</td>
-                        <td className="p-2 text-right tabular-nums font-semibold">{prov}</td>
+                        <td className="p-2 text-right tabular-nums whitespace-nowrap text-muted-foreground">{free}</td>
+                        <td className="p-2 text-right tabular-nums whitespace-nowrap font-semibold">{prov}</td>
                       </tr>
                     ))}
                   </tbody>
