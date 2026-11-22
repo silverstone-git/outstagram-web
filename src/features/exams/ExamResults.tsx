@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ArrowLeft, Check, ChevronDown, Clock, MessageCircle, Minus, RotateCcw, Share2, X as XIcon } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Progress } from '../../components/ui/progress';
@@ -18,7 +18,7 @@ function correctText(q: ShuffledQuestion): string {
   return '';
 }
 
-export function ExamResults({ result, maxScore, attemptId, quota, onQuota, onBack, onRetake, onShare }: {
+export function ExamResults({ result, maxScore, attemptId, quota, onQuota, onBack, onRetake, onShare, openChatFor }: {
   result: ExamResult;
   maxScore: number;
   attemptId: string | null;
@@ -27,11 +27,17 @@ export function ExamResults({ result, maxScore, attemptId, quota, onQuota, onBac
   onBack: () => void;
   onRetake?: () => void;
   onShare?: () => void;
+  openChatFor?: string; // question id: open its tutor chat right away (from tutor history)
 }) {
   const [filter, setFilter] = useState<Filter>('all');
   const [open, setOpen] = useState<string | null>(null);
   const [chatFor, setChatFor] = useState<ShuffledQuestion | null>(null);
   const byId = useMemo(() => new Map(result.answers.map((a) => [a.questionId, a])), [result]);
+  useEffect(() => {
+    if (!openChatFor) return;
+    const q = result.originalQuestions.find((x) => x.id === openChatFor);
+    if (q) { setOpen(q.id); setChatFor(q); }
+  }, [openChatFor, result]);
   const skipped = result.originalQuestions.filter((q) => !attempted(byId.get(q.id))).length;
   const wrong = result.originalQuestions.length - result.correctAnswers - skipped;
   const topics = Object.entries(result.accuracyPerTopic).sort((a, b) => a[1] - b[1]);
@@ -132,13 +138,23 @@ export function ExamResults({ result, maxScore, attemptId, quota, onQuota, onBac
       </main>
 
       <Drawer open={!!chatFor} onOpenChange={(o) => !o && setChatFor(null)}>
-        <DrawerContent className="h-[85dvh] max-w-3xl mx-auto flex flex-col">
-          <DrawerHeader className="text-left pb-2">
+        <DrawerContent className="h-[88dvh] max-w-3xl mx-auto flex flex-col overflow-hidden">
+          <DrawerHeader className="text-left pb-2 shrink-0">
             <DrawerTitle>AI tutor</DrawerTitle>
             <DrawerDescription className="sr-only">Chat with the AI tutor about this question</DrawerDescription>
-            {chatFor && <div className="text-sm text-muted-foreground line-clamp-2"><Latex>{chatFor.question}</Latex></div>}
+            {chatFor && (
+              <details className="group text-sm text-muted-foreground">
+                <summary className="cursor-pointer list-none">
+                  <div className="max-h-[3.2rem] overflow-hidden group-open:max-h-none [mask-image:linear-gradient(to_bottom,black_60%,transparent)] group-open:[mask-image:none]">
+                    <Latex>{chatFor.question}</Latex>
+                  </div>
+                  <span className="text-xs text-primary group-open:hidden">Show full question</span>
+                </summary>
+              </details>
+            )}
           </DrawerHeader>
-          {chatFor && <QuestionChat attemptId={attemptId} questionId={chatFor.id} quota={quota} onQuota={onQuota} />}
+          {chatFor && <QuestionChat attemptId={attemptId} questionId={chatFor.id} topic={chatFor.topic}
+            questionText={chatFor.question} quota={quota} onQuota={onQuota} />}
         </DrawerContent>
       </Drawer>
     </div>

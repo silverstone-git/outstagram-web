@@ -3,7 +3,50 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  /* Light theme. The original navy/neon look is the .dark theme below (the default). */
+  color-scheme: light;
   --font-size: 16px;
+  --background: #f6f7fb;
+  --foreground: #12142b;
+  --card: #ffffff;
+  --card-foreground: #12142b;
+  --popover: #ffffff;
+  --popover-foreground: #12142b;
+  --primary: #047857;
+  --primary-foreground: #ffffff;
+  --secondary: #e8eaf4;
+  --secondary-foreground: #12142b;
+  --muted: #e8eaf4;
+  --muted-foreground: #565a7a;
+  --accent: #b45309;
+  --accent-foreground: #ffffff;
+  --destructive: #c8102e;
+  --destructive-foreground: #ffffff;
+  --border: rgba(18, 20, 43, 0.12);
+  --input: transparent;
+  --input-background: #eef0f7;
+  --switch-background: #cfd3e6;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: #047857;
+  --chart-1: #047857;
+  --chart-2: #2563eb;
+  --chart-3: #b45309;
+  --chart-4: #7c3aed;
+  --chart-5: #c8102e;
+  --radius: 0.625rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #12142b;
+  --sidebar-primary: #047857;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8eaf4;
+  --sidebar-accent-foreground: #12142b;
+  --sidebar-border: rgba(18, 20, 43, 0.12);
+  --sidebar-ring: #047857;
+}
+
+.dark {
+  color-scheme: dark;
   --background: #0f0f23;
   --foreground: #ffffff;
   --card: #1a1d3a;
@@ -24,60 +67,20 @@
   --input: transparent;
   --input-background: #2a2d5a;
   --switch-background: #2a2d5a;
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #030213;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
+  --sidebar: #1a1d3a;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #00ff88;
+  --sidebar-primary-foreground: #0f0f23;
+  --sidebar-accent: #2a2d5a;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.1);
   --sidebar-ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
 }
 
 @theme inline {
@@ -191,3 +194,24 @@ html {
 }
 
 
+
+/* Markdown in AI tutor answers (react-markdown output). */
+.md { overflow-wrap: anywhere; }
+.md > * + * { margin-top: 0.6em; }
+.md h1, .md h2, .md h3, .md h4 { font-weight: 600; line-height: 1.3; margin-top: 0.9em; }
+.md h1 { font-size: 1.15em; } .md h2 { font-size: 1.1em; } .md h3, .md h4 { font-size: 1em; }
+.md ul { list-style: disc; padding-left: 1.25em; } .md ol { list-style: decimal; padding-left: 1.4em; }
+.md li + li { margin-top: 0.25em; }
+.md strong { font-weight: 600; }
+.md a { color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
+.md code { font-size: 0.9em; padding: 0.1em 0.3em; border-radius: 0.3em; background: color-mix(in srgb, var(--foreground) 8%, transparent); }
+.md pre { overflow-x: auto; padding: 0.6em 0.8em; border-radius: 0.5em; background: color-mix(in srgb, var(--foreground) 8%, transparent); }
+.md pre code { padding: 0; background: none; }
+.md blockquote { border-left: 3px solid var(--border); padding-left: 0.75em; color: var(--muted-foreground); }
+.md table { display: block; overflow-x: auto; border-collapse: collapse; font-size: 0.9em; }
+.md th, .md td { border: 1px solid var(--border); padding: 0.3em 0.5em; }
+.md .katex-display { overflow-x: auto; overflow-y: hidden; padding: 0.25em 0; margin: 0.5em 0; }
+/* Equations can be long-pressed (or right-clicked) to save them as favourites. */
+.md .katex { -webkit-touch-callout: none; border-radius: 0.3em; transition: background-color .2s; }
+.md .katex-display, .md .katex:not(.katex-display .katex) { cursor: pointer; }
+.md .fav-pressing, .md .fav-flash { background: color-mix(in srgb, var(--primary) 22%, transparent); }

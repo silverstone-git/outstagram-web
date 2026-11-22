@@ -7,6 +7,7 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 import { toast } from 'sonner';
 import { OutstagramAPI } from '../services/api';
 import type { Post } from '../services/api';
+import { categoryKey } from '../types/post';
 
 // Types
 interface CategoryOption {
@@ -29,7 +30,7 @@ const CATEGORY_OPTIONS: CategoryOption[] = [
 const CATEGORY_STYLES = {
   exam_result: 'bg-accent/20 text-accent',
   achievement: 'bg-primary/20 text-primary',
-  academic: 'bg-blue-500/20 text-blue-400',
+  academic: 'bg-blue-500/20 text-blue-600 dark:text-blue-400',
   default: 'bg-secondary/20 text-secondary-foreground',
 } as const;
 
@@ -45,7 +46,7 @@ const formatTimeAgo = (dateString: string): string => {
 };
 
 const getCategoryIcon = (category: string) => {
-  switch (category) {
+  switch (categoryKey(category)) {
     case 'academic': return <BookOpen className="w-4 h-4" />;
     case 'achievement': return <Trophy className="w-4 h-4" />;
     case 'exam_result': return <GraduationCap className="w-4 h-4" />;
@@ -54,7 +55,7 @@ const getCategoryIcon = (category: string) => {
 };
 
 const getCategoryStyle = (category: string): string => {
-  return CATEGORY_STYLES[category as keyof typeof CATEGORY_STYLES] || CATEGORY_STYLES.default;
+  return CATEGORY_STYLES[categoryKey(category) as keyof typeof CATEGORY_STYLES] || CATEGORY_STYLES.default;
 };
 
 // Sub-components

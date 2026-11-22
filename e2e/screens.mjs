@@ -61,6 +61,7 @@ const answerAndSubmit = async (page) => {
 const screens = [
   ['login', false, null],
   ['home', true, nav('Home')],
+  ['home-light', true, async (p) => { await nav('Home')(p); await p.getByRole('switch', { name: /light mode/i }).first().click(); await p.waitForTimeout(300); }],
   ['explore', true, nav('Explore')],
   ['new-post', true, nav('New post')],
   ['profile', true, nav('Profile')],
@@ -76,6 +77,17 @@ const screens = [
     await p.getByText('ignores the zero-point energy', { exact: false }).waitFor();
     await p.waitForTimeout(400);
   }],
+  ['exam-chat-favourite', true, async (p) => {
+    await answerAndSubmit(p);
+    await p.locator('article button[aria-expanded]').first().click();
+    await p.getByRole('button', { name: 'Ask the AI tutor' }).click();
+    await p.getByRole('button', { name: 'Why is my answer wrong?' }).click();
+    await p.getByText('ignores the zero-point energy', { exact: false }).waitFor();
+    if (await p.locator('.md h3').count() < 2) throw new Error('markdown headings not rendered');
+    await p.locator('.md .katex-display').first().click({ button: 'right' });
+    await p.getByText('Equation saved to favourites').waitFor();
+  }],
+  ['paywall', true, async (p) => { await nav('Exams')(p); await p.getByRole('button', { name: /AI prompts left this hour/ }).click(); await p.getByText('Pay ₹99 with Razorpay').waitFor(); await p.waitForTimeout(400); }],
 ];
 
 const report = { base: BASE, api: API.origin, shots: [], consoleErrors: [], pageErrors: [], unmocked: [], overflow: [] };
@@ -89,6 +101,7 @@ for (const [vpName, vp] of Object.entries(viewports)) {
       const hit = routes.find(([m, re]) => m === route.request().method() && re.test(key));
       if (!hit) { report.unmocked.push(`${route.request().method()} ${key}`); return route.fulfill({ status: 404, body: '{}' }); }
       const body = typeof hit[2] === 'function' ? hit[2](route.request().url()) : hit[2];
+      if (body && body.__raw) return route.fulfill({ status: 200, contentType: body.type, body: body.__raw });
       return route.fulfill({ status: route.request().method() === 'POST' ? 201 : 200, contentType: 'application/json', body: JSON.stringify(body) });
     });
     if (signedIn) {

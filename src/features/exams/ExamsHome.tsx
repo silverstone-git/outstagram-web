@@ -1,5 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { BookOpenCheck, ChevronRight, Clock, History, Loader2, Sparkles, Users } from 'lucide-react';
+import { BookOpenCheck, ChevronRight, Clock, History, Loader2, MessagesSquare, Sparkles, Star, Users } from 'lucide-react';
+import { openPaywall } from '../billing/billing';
+import { SavedEquations, TutorHistory } from './TutorLibrary';
 import { PRESETS, SUBJECTS } from './engine';
 import { ExamAPI, type AttemptSummary, type Quota } from './examApi';
 import type { ServerExam } from './types';
@@ -13,7 +15,7 @@ export function ExamsHome({ busy, quota, onStart, onOpenAttempt }: {
   busy: string | null;
   quota: Quota | null;
   onStart: (r: StartRequest, key: string) => void;
-  onOpenAttempt: (id: string) => void;
+  onOpenAttempt: (id: string, questionId?: string) => void;
 }) {
   const [attempts, setAttempts] = useState<AttemptSummary[] | null>(null);
   const [community, setCommunity] = useState<ServerExam[] | null>(null);
@@ -30,9 +32,11 @@ export function ExamsHome({ busy, quota, onStart, onOpenAttempt }: {
           <p className="text-sm text-muted-foreground">Practice, review, then ask the AI tutor about any question.</p>
         </div>
         {quota && (
-          <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-xs" title="AI prompts left this hour">
+          <button type="button" onClick={() => openPaywall({ code: quota.remaining <= 0 ? 'ai_quota' : 'manual' })}
+            className="shrink-0 inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-xs hover:bg-secondary/70"
+            title="AI prompts left this hour" aria-label={`${quota.remaining} of ${quota.limit} AI prompts left this hour. Upgrade`}>
             <Sparkles className="w-3.5 h-3.5 text-primary" />{quota.remaining}/{quota.limit}
-          </span>
+          </button>
         )}
       </header>
 
@@ -87,6 +91,16 @@ export function ExamsHome({ busy, quota, onStart, onOpenAttempt }: {
             ))}
           </ul>
         )}
+      </Section>
+
+      <div id="tutor-history">
+        <Section icon={<MessagesSquare className="w-4 h-4" />} title="Tutor history">
+          <TutorHistory onOpen={(a, q) => onOpenAttempt(a, q)} />
+        </Section>
+      </div>
+
+      <Section icon={<Star className="w-4 h-4" />} title="Saved equations">
+        <SavedEquations />
       </Section>
 
       <Section icon={<Users className="w-4 h-4" />} title="Community exams">

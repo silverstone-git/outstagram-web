@@ -13,6 +13,8 @@ import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
 import { ExamsTab } from './features/exams/ExamsTab';
 import type { ExamResult } from './features/exams/types';
+import { Paywall } from './features/billing/Paywall';
+import type { PostCategory } from './types/post';
 import { OutstagramAPI } from './services/api';
 import type { User as ApiUser } from './services/api';
 
@@ -33,6 +35,12 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<ApiUser | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [composeCategory, setComposeCategory] = useState<PostCategory | undefined>(undefined);
+  const compose = (c: PostCategory) => { setComposeCategory(c); setCurrentScreen('upload'); };
+  const manageTutorHistory = () => {
+    setCurrentScreen('exams');
+    window.setTimeout(() => document.getElementById('tutor-history')?.scrollIntoView({ behavior: 'smooth' }), 400);
+  };
 
   const shareExamResult = async (result: ExamResult, maxScore: number) => {
     const caption = `📊 ${result.examName}: ${Number(result.score.toFixed(2))}/${Number(maxScore.toFixed(2))} ` +
@@ -96,7 +104,8 @@ export default function App() {
       if (!currentUser) return <Dashboard user={{} as ApiUser} onNavigateToPost={handleNavigateToPost} />;
       switch (currentScreen) {
         case 'dashboard':
-          return <Dashboard user={currentUser} onNavigateToPost={handleNavigateToPost} />;
+          return <Dashboard user={currentUser} onNavigateToPost={handleNavigateToPost}
+            onOpenExams={() => setCurrentScreen('exams')} onCompose={compose} />;
         case 'feed':
           return <Feed />;
         case 'exams':
@@ -104,11 +113,12 @@ export default function App() {
         case 'profile':
           return <Profile user={currentUser} onLogout={handleLogout} onNavigateToPost={handleNavigateToPost} />;
         case 'upload':
-          return <UploadPost user={currentUser} />;
+          return <UploadPost key={composeCategory ?? 'default'} user={currentUser} initialCategory={composeCategory} />;
         case 'postView':
           return <PostView postId={selectedPostId!} onBack={() => setCurrentScreen('dashboard')} />;
         default:
-          return <Dashboard user={currentUser} onNavigateToPost={handleNavigateToPost} />;
+          return <Dashboard user={currentUser} onNavigateToPost={handleNavigateToPost}
+            onOpenExams={() => setCurrentScreen('exams')} onCompose={compose} />;
       }
     };
 
@@ -163,7 +173,7 @@ export default function App() {
               <GraduationCap className="w-6 h-6" />
             </button>
             <button
-              onClick={() => setCurrentScreen('upload')}
+              onClick={() => { setComposeCategory(undefined); setCurrentScreen('upload'); }}
               aria-label="New post"
               className={`p-3 transition-colors ${
                 currentScreen === 'upload' ? 'text-accent' : 'text-muted-foreground'
@@ -183,6 +193,7 @@ export default function App() {
           </div>
         </div>
         <Toaster />
+        <Paywall onManageHistory={manageTutorHistory} />
         <SessionExpiredDialog isOpen={isSessionExpired} onClose={hideSessionExpiredDialog} />
       </div>
     );

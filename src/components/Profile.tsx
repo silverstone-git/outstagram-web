@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Grid, Heart, Bookmark, LogOut, GraduationCap, Trophy } from 'lucide-react';
+import { Grid, Heart, Bookmark, LogOut, GraduationCap, Trophy, Crown } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
@@ -7,7 +7,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { toast } from 'sonner';
 import { OutstagramAPI } from '../services/api';
-import type { User as ApiUser, Post } from '../services/api';
+import type { User as ApiUser, Post, MyStats } from '../services/api';
+import { categoryKey } from '../types/post';
+import { ThemeToggle } from '../lib/theme';
+import { openPaywall } from '../features/billing/billing';
 
 interface ProfileProps {
   user: ApiUser;
@@ -18,6 +21,8 @@ interface ProfileProps {
 function Profile({ user, onLogout, onNavigateToPost }: ProfileProps) {
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState<MyStats | null>(null);
+  useEffect(() => { OutstagramAPI.getMyStats().then(setStats).catch(() => {}); }, [user]);
 
   const loadUserPosts = useCallback(async () => {
     if (!user) return;
@@ -49,15 +54,23 @@ function Profile({ user, onLogout, onNavigateToPost }: ProfileProps) {
       {/* Header */}
       <div className="sticky top-0 bg-card/80 backdrop-blur-md border-b border-border p-4 z-10">
         <div className="max-w-md mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-bold text-card-foreground">@{user.username}</h1>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-muted-foreground hover:text-destructive"
-            onClick={onLogout}
-          >
-            <LogOut className="w-5 h-5" />
-          </Button>
+          <h1 className="min-w-0 truncate text-xl font-bold text-card-foreground">@{user.username}</h1>
+          <div className="flex shrink-0 items-center gap-1">
+            <button type="button" onClick={() => openPaywall({ code: 'manual' })} aria-label="Plans and Pro"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-primary">
+              <Crown className="h-5 w-5" />
+            </button>
+            <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="Log out"
+              className="text-muted-foreground hover:text-destructive"
+              onClick={onLogout}
+            >
+              <LogOut className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -87,15 +100,15 @@ function Profile({ user, onLogout, onNavigateToPost }: ProfileProps) {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-primary">{userPosts.length}</div>
+            <div className="text-2xl font-bold text-primary tabular-nums">{stats?.posts ?? '–'}</div>
             <div className="text-sm text-muted-foreground">Posts</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-primary">156</div>
+            <div className="text-2xl font-bold text-primary tabular-nums">{stats?.followers ?? '–'}</div>
             <div className="text-sm text-muted-foreground">Followers</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-primary">89</div>
+            <div className="text-2xl font-bold text-primary tabular-nums">{stats?.following ?? '–'}</div>
             <div className="text-sm text-muted-foreground">Following</div>
           </div>
         </div>
@@ -105,15 +118,17 @@ function Profile({ user, onLogout, onNavigateToPost }: ProfileProps) {
           <Card className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/30">
             <CardContent className="p-3 text-center">
               <GraduationCap className="w-6 h-6 text-primary mx-auto mb-1" />
-              <div className="text-sm font-medium text-card-foreground">GPA: 3.8</div>
-              <div className="text-xs text-muted-foreground">Academic Standing</div>
+              <div className="text-sm font-medium text-card-foreground">
+                {stats ? (stats.exams_taken ? `${stats.exams_taken} exam${stats.exams_taken === 1 ? '' : 's'} · ${Math.round(stats.avg_accuracy ?? 0)}%` : 'No exams yet') : '–'}
+              </div>
+              <div className="text-xs text-muted-foreground">Exams · avg accuracy</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-r from-accent/10 to-primary/10 border-accent/30">
             <CardContent className="p-3 text-center">
               <Trophy className="w-6 h-6 text-accent mx-auto mb-1" />
-              <div className="text-sm font-medium text-card-foreground">5 Awards</div>
-              <div className="text-xs text-muted-foreground">Achievements</div>
+              <div className="text-sm font-medium text-card-foreground">{stats ? `${stats.achievements} posted` : '–'}</div>
+              <div className="text-xs text-muted-foreground">Achievements & results</div>
             </CardContent>
           </Card>
         </div>
@@ -170,9 +185,9 @@ function Profile({ user, onLogout, onNavigateToPost }: ProfileProps) {
                       />
                     ) : (
                       <div className="w-full h-full bg-secondary/50 flex items-center justify-center">
-                        {post.post_category === 'exam_result' ? (
+                        {categoryKey(post.post_category) === 'exam_result' ? (
                           <GraduationCap className="w-8 h-8 text-accent" />
-                        ) : post.post_category === 'achievement' ? (
+                        ) : categoryKey(post.post_category) === 'achievement' ? (
                           <Trophy className="w-8 h-8 text-primary" />
                         ) : (
                           <span className="text-2xl">📚</span>

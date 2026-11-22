@@ -10,7 +10,7 @@ import type { ExamConfig, ExamResult } from './types';
 type View =
   | { name: 'home' }
   | { name: 'running'; config: ExamConfig; examId: string | null; key: number }
-  | { name: 'results'; result: ExamResult; maxScore: number; attemptId: string | null; retake?: () => void };
+  | { name: 'results'; result: ExamResult; maxScore: number; attemptId: string | null; retake?: () => void; chat?: string };
 
 /** Exams tab: home → runner (full-screen) → results with the per-question AI tutor. */
 export function ExamsTab({ onImmersive, onShareResult }: {
@@ -21,7 +21,12 @@ export function ExamsTab({ onImmersive, onShareResult }: {
   const [busy, setBusy] = useState<string | null>(null);
   const [quota, setQuota] = useState<Quota | null>(null);
 
-  useEffect(() => { ExamAPI.quota().then(setQuota).catch(() => {}); }, []);
+  useEffect(() => {
+    const load = () => ExamAPI.quota().then(setQuota).catch(() => {});
+    load();
+    window.addEventListener('planchange', load);
+    return () => window.removeEventListener('planchange', load);
+  }, []);
   useEffect(() => { onImmersive(view.name !== 'home'); return () => onImmersive(false); }, [view.name, onImmersive]);
 
   const run = (config: ExamConfig, examId: string | null) => setView({ name: 'running', config, examId, key: Date.now() });
@@ -52,11 +57,11 @@ export function ExamsTab({ onImmersive, onShareResult }: {
     }
   }, []);
 
-  const openAttempt = async (id: string) => {
+  const openAttempt = async (id: string, questionId?: string) => {
     setBusy(`attempt:${id}`);
     try {
       const a = await ExamAPI.attempt(id);
-      setView({ name: 'results', result: a.result, maxScore: a.max_score, attemptId: a.attempt_id });
+      setView({ name: 'results', result: a.result, maxScore: a.max_score, attemptId: a.attempt_id, chat: questionId });
       window.scrollTo({ top: 0 });
     } catch {
       toast.error('Could not open that attempt');
@@ -73,7 +78,7 @@ export function ExamsTab({ onImmersive, onShareResult }: {
   if (view.name === 'results') {
     return <ExamResults result={view.result} maxScore={view.maxScore} attemptId={view.attemptId}
       quota={quota} onQuota={setQuota} onBack={() => setView({ name: 'home' })} onRetake={view.retake}
-      onShare={onShareResult ? () => onShareResult(view.result, view.maxScore) : undefined} />;
+      onShare={onShareResult ? () => onShareResult(view.result, view.maxScore) : undefined} openChatFor={view.chat} />;
   }
   return <ExamsHome busy={busy} quota={quota} onStart={start} onOpenAttempt={openAttempt} />;
 }

@@ -1,104 +1,83 @@
-import { useState, useEffect } from 'react';
-import { MessageCircle, Users, Zap, GraduationCap, Trophy, BookOpen } from 'lucide-react';
+import { useEffect, useState, type ComponentType } from 'react';
+import { BookOpen, GraduationCap, MessageCircle, Trophy, Users, Zap } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { toast } from 'sonner';
 import { OutstagramAPI } from '../services/api';
-import type { User as ApiUser, Post } from '../services/api';
+import type { User as ApiUser, Post, MyStats, TrendingTag } from '../services/api';
+import { categoryKey, type PostCategory } from '../types/post';
+import { ThemeToggle } from '../lib/theme';
 
 interface DashboardProps {
   user: ApiUser;
   onNavigateToPost: (postId: string) => void;
+  onOpenExams?: () => void;
+  onCompose?: (category: PostCategory) => void;
 }
 
-function Dashboard({ user, onNavigateToPost }: DashboardProps) {
-  const [dashboardData, setDashboardData] = useState<Post[]>([]);
+/** "+2 this week" only when it's true; every number comes from GET /me/stats. */
+const delta = (n: number | undefined, period: string) => (n ? `+${n} this ${period}` : `none this ${period}`);
+
+function Dashboard({ user, onNavigateToPost, onOpenExams, onCompose }: DashboardProps) {
+  const [recent, setRecent] = useState<Post[]>([]);
+  const [stats, setStats] = useState<MyStats | null>(null);
+  const [trending, setTrending] = useState<TrendingTag[] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [userStats, setUserStats] = useState({
-    posts: 0,
-    achievements: 0,
-    studyGroups: 0
-  });
 
   useEffect(() => {
-    const loadData = async () => {
-      await loadDashboard();
-    };
-    
-    loadData();
+    let live = true;
+    OutstagramAPI.getDashboard(1)
+      .then((p) => live && setRecent(p ?? []))
+      .catch(() => toast.error('Failed to load your posts.'))
+      .finally(() => live && setIsLoading(false));
+    OutstagramAPI.getMyStats().then((s) => live && setStats(s)).catch(() => {});
+    OutstagramAPI.getTrending().then((t) => live && setTrending(t)).catch(() => live && setTrending([]));
+    return () => { live = false; };
   }, []);
 
-  const loadDashboard = async () => {
-    try {
-      setIsLoading(true);
-      const posts = await OutstagramAPI.getDashboard(1);
-      if (!posts) {
-        setDashboardData([]);
-        setUserStats({
-          posts: 0,
-          achievements: 0,
-          studyGroups: 0
-        });
-        return;
-      }
-      setDashboardData(posts);
-      
-      // Calculate stats from posts
-      const achievements = posts.filter(p => p.post_category === 'achievement' || p.post_category === 'exam_result').length;
-      const studyGroups = posts.filter(p => p.post_category === 'study_group').length;
-      
-      setUserStats({
-        posts: posts.length,
-        achievements,
-        studyGroups
-      });
-    } catch {
-      toast.error('Failed to load dashboard data.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const stats = [
-    { label: 'Posts', value: userStats.posts.toString(), icon: MessageCircle, change: '+3 this week' },
-    { label: 'Achievements', value: userStats.achievements.toString(), icon: Trophy, change: '+2 this month' },
-    { label: 'Study Groups', value: userStats.studyGroups.toString(), icon: Users, change: 'Active' },
+  const cards: { label: string; value: number | undefined; icon: ComponentType<{ className?: string }>; note: string }[] = [
+    { label: 'Posts', value: stats?.posts, icon: MessageCircle, note: delta(stats?.posts_this_week, 'week') },
+    { label: 'Achievements', value: stats?.achievements, icon: Trophy, note: delta(stats?.achievements_this_month, 'month') },
+    { label: 'Exams taken', value: stats?.exams_taken, icon: GraduationCap,
+      note: stats?.avg_accuracy != null ? `${Math.round(stats.avg_accuracy)}% avg accuracy` : delta(stats?.exams_this_week, 'week') },
+    { label: 'Followers', value: stats?.followers, icon: Users, note: stats ? `${stats.following} following` : '' },
   ];
+  const first = (user.fullname || user.username || '').split(' ')[0];
 
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-md mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-primary">Welcome, {user.fullname.split(' ')[0]}! 🎓</h1>
-            <p className="text-muted-foreground">Your academic journey dashboard</p>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-primary truncate">Welcome, {first}! 🎓</h1>
+            <p className="text-muted-foreground">Your study dashboard</p>
           </div>
-          <Avatar className="w-12 h-12 ring-2 ring-primary">
-            <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} />
-            <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
-          </Avatar>
+          <div className="flex shrink-0 items-center gap-1">
+            <ThemeToggle />
+            <Avatar className="w-12 h-12 ring-2 ring-primary">
+              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} />
+              <AvatarFallback>{(user.username || '?').charAt(0).toUpperCase()}</AvatarFallback>
+            </Avatar>
+          </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-3 gap-3">
-          {stats.map((stat, index) => (
-            <Card key={index} className="bg-card border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <stat.icon className="w-5 h-5 text-primary" />
-                  <span className="text-xs text-accent">{stat.change}</span>
+        <div className="grid grid-cols-2 gap-3">
+          {cards.map((c) => (
+            <Card key={c.label} className="bg-card border-border">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2">
+                  <c.icon className="w-5 h-5 shrink-0 text-primary" />
+                  <span className="text-xl font-bold tabular-nums text-card-foreground">{c.value ?? '–'}</span>
                 </div>
-                <div className="text-lg font-bold text-card-foreground">{stat.value}</div>
-                <div className="text-xs text-muted-foreground">{stat.label}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{c.label}</div>
+                <div className="text-[11px] leading-tight text-accent truncate">{stats ? c.note : ' '}</div>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Quick Actions */}
         <Card className="bg-gradient-to-r from-primary/20 to-accent/20 border-primary/30">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-card-foreground">
@@ -107,27 +86,29 @@ function Dashboard({ user, onNavigateToPost }: DashboardProps) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-              📊 Share Exam Results
+            <Button className="w-full h-auto min-h-11 whitespace-normal py-2.5" onClick={onOpenExams}>
+              📊 Take a test, share your result
             </Button>
             <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" className="border-primary/30 text-primary hover:bg-primary/10">
-                🏆 Post Achievement
+              <Button variant="outline" className="h-auto min-h-11 whitespace-normal py-2.5 border-primary/30 text-primary hover:bg-primary/10"
+                onClick={() => onCompose?.('achievement')}>
+                🏆 Post achievement
               </Button>
-              <Button variant="outline" className="border-accent/30 text-accent hover:bg-accent/10">
-                👥 Find Study Group
+              <Button variant="outline" className="h-auto min-h-11 whitespace-normal py-2.5 border-accent/40 text-accent hover:bg-accent/10"
+                onClick={() => onCompose?.('study_group')}>
+                👥 Find study group
               </Button>
             </div>
-            <Button variant="outline" className="w-full border-secondary/30 text-card-foreground hover:bg-secondary/10">
-              📚 Share Academic Content
+            <Button variant="outline" className="w-full h-auto min-h-11 whitespace-normal py-2.5 text-card-foreground"
+              onClick={() => onCompose?.('academic')}>
+              📚 Share study notes
             </Button>
           </CardContent>
         </Card>
 
-        {/* Recent Posts */}
         <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-card-foreground">Your Recent Posts</CardTitle>
+            <CardTitle className="text-card-foreground">Your recent posts</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {isLoading ? (
@@ -135,72 +116,62 @@ function Dashboard({ user, onNavigateToPost }: DashboardProps) {
                 <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
                 <p className="text-muted-foreground text-sm">Loading your posts...</p>
               </div>
-            ) : dashboardData.length > 0 ? (
-              dashboardData.slice(0, 3).map((post) => (
-                <div key={post.post_id} className="flex items-center gap-3 p-2 rounded-lg cursor-pointer hover:bg-secondary/50" onClick={() => onNavigateToPost(post.post_id)}>
-                  <div className="w-16 h-16 rounded-xl overflow-hidden relative">
-                    {post.media_urls && post.media_urls.length > 0 ? (
-                      <ImageWithFallback
-                        src={post.media_urls[0].url}
-                        alt="Post thumbnail"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-secondary/50 flex items-center justify-center">
-                        {post.post_category === 'exam_result' ? <GraduationCap className="w-6 h-6 text-accent" /> :
-                         post.post_category === 'achievement' ? <Trophy className="w-6 h-6 text-primary" /> :
-                         <BookOpen className="w-6 h-6 text-muted-foreground" />}
+            ) : recent.length > 0 ? (
+              recent.slice(0, 3).map((post) => {
+                const cat = categoryKey(post.post_category);
+                return (
+                  <button type="button" key={post.post_id} className="w-full text-left flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50" onClick={() => onNavigateToPost(post.post_id)}>
+                    <div className="w-16 h-16 shrink-0 rounded-xl overflow-hidden relative">
+                      {post.media_urls && post.media_urls.length > 0 ? (
+                        <ImageWithFallback src={post.media_urls[0].url} alt="Post thumbnail" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-secondary/50 flex items-center justify-center">
+                          {cat === 'exam_result' ? <GraduationCap className="w-6 h-6 text-accent" /> :
+                            cat === 'achievement' ? <Trophy className="w-6 h-6 text-primary" /> :
+                              <BookOpen className="w-6 h-6 text-muted-foreground" />}
+                        </div>
+                      )}
+                      {post.highlighted_by_author && <div className="absolute top-1 right-1 w-3 h-3 bg-accent rounded-full"></div>}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm text-card-foreground mb-1 line-clamp-2 break-words">{post.caption}</div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="capitalize truncate">{String(cat).replace(/_/g, ' ')}</span>
+                        <span>•</span>
+                        <span className="shrink-0">{new Date(post.datetime_posted).toLocaleDateString()}</span>
                       </div>
-                    )}
-                    {post.highlighted_by_author && (
-                      <div className="absolute top-1 right-1 w-3 h-3 bg-accent rounded-full"></div>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm text-card-foreground mb-1 line-clamp-2">
-                      {post.caption.slice(0, 60)}...
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="capitalize">{post.post_category.replace('_', ' ')}</span>
-                      <span>•</span>
-                      <span>{new Date(post.datetime_posted).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                </div>
-              ))
+                  </button>
+                );
+              })
             ) : (
               <div className="text-center py-6">
                 <div className="text-4xl mb-2">📚</div>
-                <p className="text-muted-foreground text-sm">No posts yet! Start sharing your academic journey.</p>
+                <p className="text-muted-foreground text-sm">No posts yet! Start sharing your study journey.</p>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Trending Academic Topics */}
         <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-card-foreground">Student Trending 🔥</CardTitle>
+            <CardTitle className="text-card-foreground">Trending this month 🔥</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {[
-                { tag: '#StudyLife', icon: '📚' },
-                { tag: '#ExamPrep', icon: '🎯' },
-                { tag: '#StudentSuccess', icon: '🏆' },
-                { tag: '#StudyGroup', icon: '👥' },
-                { tag: '#AcademicGoals', icon: '🎓' },
-                { tag: '#ProjectWork', icon: '💡' }
-              ].map((item, index) => (
-                <div key={index} className="flex items-center justify-between p-2 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors cursor-pointer">
-                  <div className="flex items-center gap-2">
-                    <span>{item.icon}</span>
-                    <span className="text-primary">{item.tag}</span>
+            {trending === null ? (
+              <div className="h-20 rounded-lg bg-secondary/40 animate-pulse" />
+            ) : trending.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No hashtags yet this month. Add one like #ExamPrep to your next post.</p>
+            ) : (
+              <div className="space-y-2">
+                {trending.map((t, i) => (
+                  <div key={t.tag} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-secondary/50">
+                    <span className="text-primary truncate">{t.tag}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">#{i + 1} · {t.posts} post{t.posts === 1 ? '' : 's'}</span>
                   </div>
-                  <span className="text-xs text-accent">#{index + 1}</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

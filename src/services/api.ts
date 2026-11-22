@@ -130,7 +130,24 @@ export interface FollowRequest {
 export interface MediaUploadResponse {
   object_key: string;
   presigned_url: string;
+  bytes?: number;
+  media_type?: 'image' | 'video';
 }
+
+/** Everything here is counted from the database by GET /me/stats. */
+export interface MyStats {
+  posts: number; posts_this_week: number;
+  achievements: number; achievements_this_month: number;
+  study_groups: number; study_groups_this_month: number;
+  followers: number; following: number;
+  exams_taken: number; exams_this_week: number;
+  avg_accuracy: number | null; best_score_pct: number | null;
+  favorite_equations: number;
+}
+export interface TrendingTag { tag: string; posts: number }
+
+/** Upload refused for size; the paywall has been opened if upgrading would help. */
+export class UploadTooLargeError extends Error {}
 
 // API service class
 export class OutstagramAPI {
@@ -358,6 +375,14 @@ export class OutstagramAPI {
         return 'image';
     };
 
+    const tooLarge = async (response: Response) => {
+        if (response.status !== 413) return;
+        const { paywallFrom } = await import('../features/billing/billing');
+        const d = await paywallFrom(response);
+        const body = d ?? (await response.json().catch(() => ({})))?.detail;
+        throw new UploadTooLargeError(body?.message || 'File too large');
+    };
+
     if (files.length === 1) {
         formData.append('file', files[0]);
         const response = await fetchWithHandling(`${API_BASE_URL}/media-upload`, {
@@ -365,12 +390,13 @@ export class OutstagramAPI {
             headers,
             body: formData,
         });
+        await tooLarge(response);
 
         const result = await handleResponse<MediaUploadResponse>(response);
         if (!result) return null;
         return [{
             url: result.presigned_url,
-            media_type: getMediaType(result.object_key),
+            media_type: result.media_type ?? getMediaType(result.object_key),
         }];
     } else {
         files.forEach(file => {
@@ -382,12 +408,13 @@ export class OutstagramAPI {
             headers,
             body: formData,
         });
+        await tooLarge(response);
 
         const results = await handleResponse<MediaUploadResponse[]>(response);
         if (!results) return null;
         return results.map(result => ({
             url: result.presigned_url,
-            media_type: getMediaType(result.object_key),
+            media_type: result.media_type ?? getMediaType(result.object_key),
         }));
     }
   }
@@ -508,6 +535,16 @@ export class OutstagramAPI {
     const response = await fetchWithHandling(`${API_BASE_URL}/pariksha/${examId}`);
 
     return handleResponse<Exam>(response);
+  }
+
+  static async getMyStats(): Promise<MyStats | null> {
+    const response = await fetchWithHandling(`${API_BASE_URL}/me/stats`, { headers: this.getAuthHeaders() });
+    return handleResponse<MyStats>(response);
+  }
+
+  static async getTrending(days = 30): Promise<TrendingTag[]> {
+    const response = await fetchWithHandling(`${API_BASE_URL}/trending?days=${days}`, { headers: this.getAuthHeaders() });
+    return (await handleResponse<TrendingTag[]>(response)) ?? [];
   }
 
   // Dashboard

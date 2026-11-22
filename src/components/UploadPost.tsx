@@ -9,12 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Switch } from './ui/switch';
 import { Label } from './ui/label';
 import { toast } from 'sonner';
-import { OutstagramAPI } from '../services/api';
+import { OutstagramAPI, UploadTooLargeError } from '../services/api';
+import { compressImage, formatBytes } from '../lib/compress';
+import { BillingAPI, openPaywall } from '../features/billing/billing';
 import type { User as ApiUser, CreatePostData } from '../services/api';
 import type { PostCategory } from '../types/post';
 
 interface UploadPostProps {
   user: ApiUser;
+  initialCategory?: PostCategory;
 }
 
 interface FilePreview {
@@ -22,13 +25,14 @@ interface FilePreview {
   type: 'image' | 'video';
 }
 
-function UploadPost({ user }: UploadPostProps) {
+function UploadPost({ user, initialCategory }: UploadPostProps) {
   const [caption, setCaption] = useState('');
   const [previews, setPreviews] = useState<FilePreview[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [hashtags, setHashtags] = useState('');
   const [location, setLocation] = useState('');
-  const [postCategory, setPostCategory] = useState<PostCategory>("tech");
+  const [postCategory, setPostCategory] = useState<PostCategory>(initialCategory ?? "academic");
+  const [status, setStatus] = useState<string | null>(null);
   const [isHighlighted, setIsHighlighted] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [examData, setExamData] = useState({
@@ -87,7 +91,19 @@ function UploadPost({ user }: UploadPostProps) {
 
     setIsUploading(true);
     try {
-      const mediaUrls = await OutstagramAPI.uploadImages(selectedFiles);
+      // Compress every heavy photo first; then check the plan's per-file limit before uploading.
+      const limit = (await BillingAPI.status().catch(() => null))?.limits.media_bytes ?? 200_000;
+      setStatus('Compressing…');
+      const files = await Promise.all(selectedFiles.map((f) => compressImage(f, Math.min(limit, 200_000))));
+      const saved = selectedFiles.reduce((a, f) => a + f.size, 0) - files.reduce((a, f) => a + f.size, 0);
+      const big = files.find((f) => f.size > limit);
+      if (big) {
+        openPaywall({ code: 'media_too_large',
+          message: `"${big.name}" is ${formatBytes(big.size)} even after compression; your plan allows ${formatBytes(limit)} per file.` });
+        return;
+      }
+      setStatus(saved > 50_000 ? `Uploading (compressed, saved ${formatBytes(saved)})…` : 'Uploading…');
+      const mediaUrls = await OutstagramAPI.uploadImages(files);
       if (!mediaUrls) {
         toast.error('Failed to upload media. Please try again.');
         return;
@@ -120,15 +136,16 @@ function UploadPost({ user }: UploadPostProps) {
       setSelectedFiles([]);
       setHashtags('');
       setLocation('');
-      setPostCategory("tech");
+      setPostCategory(initialCategory ?? "academic");
       setIsHighlighted(false);
       setExamData({ subject: '', score: '', totalMarks: '', grade: '' });
 
       toast.success('Post shared successfully! 🎉');
-    } catch {
-      toast.error('Failed to share post. Please try again.');
+    } catch (e) {
+      if (!(e instanceof UploadTooLargeError)) toast.error('Failed to share post. Please try again.');
     } finally {
       setIsUploading(false);
+      setStatus(null);
     }
   };
   
@@ -165,7 +182,7 @@ function UploadPost({ user }: UploadPostProps) {
             className="bg-accent hover:bg-accent/90 text-accent-foreground"
             disabled={previews.length === 0 || !caption.trim() || isUploading}
           >
-            {isUploading ? 'Sharing...' : 'Share'}
+            {isUploading ? (status ? 'Working…' : 'Sharing...') : 'Share'}
           </Button>
         </div>
       </div>
@@ -450,7 +467,7 @@ function UploadPost({ user }: UploadPostProps) {
           {isUploading ? (
             <>
               <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-              Sharing...
+              {status || 'Sharing...'}
             </>
           ) : (
             <>

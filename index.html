@@ -1,10 +1,20 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>froutstagram</title>
+    <meta name="theme-color" content="#0f0f23" />
+    <title>Outstagram</title>
+    <script>
+      // Apply the saved theme before first paint (no flash). Default: dark.
+      try {
+        var t = localStorage.getItem('outstagram_theme');
+        var dark = t ? t === 'dark' : true;
+        document.documentElement.classList.toggle('dark', dark);
+        document.querySelector('meta[name=theme-color]').setAttribute('content', dark ? '#0f0f23' : '#f6f7fb');
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

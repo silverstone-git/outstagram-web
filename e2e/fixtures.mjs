@@ -50,13 +50,42 @@ const sample = (url) => {
 
 export const chatReply = {
   message: { role: 'assistant', datetime_sent: ago(0),
-    content: 'A classical oscillator can rest at $x = 0$, but quantum mechanically $[\\hat x, \\hat p] = i\\hbar$ forbids $\\Delta x = \\Delta p = 0$ [1].\n\nMinimising $\\langle H \\rangle$ subject to $\\Delta x\\,\\Delta p \\ge \\hbar/2$ gives $$E_0 = \\frac{\\hbar\\omega}{2}.$$ So option A ignores the zero-point energy [2].',
+    content: '### 1. Why not zero?\nA classical oscillator can rest at $x = 0$, but quantum mechanically $[\\hat x, \\hat p] = i\\hbar$ forbids $\\Delta x = \\Delta p = 0$ [1].\n\n### 2. Step-by-step\n1. **Uncertainty:** $\\Delta x\\,\\Delta p \\ge \\hbar/2$\n2. **Minimise** $\\langle H \\rangle$ under that constraint:\n\n$$E_0 = \\frac{\\hbar\\omega}{2}.$$\n\nSo option A ignores the zero-point energy [2].',
     citations: [{ n: 1, doc: 'Griffiths QM', section: 'The Harmonic Oscillator' }, { n: 2, doc: 'Sakurai', section: 'Simple Harmonic Oscillator' }] },
   quota: { limit: 10, used: 4, remaining: 6, window_seconds: 3600, resets_at: null },
 };
 
-// [method, regex on pathname+search, body or (url) => body]
+const sse = (events) => ({ __raw: events.map(([e, d]) => `event: ${e}\ndata: ${JSON.stringify(d)}\n\n`).join(''), type: 'text/event-stream' });
+const streamReply = sse([
+  ['status', { text: 'Checking the textbooks…' }],
+  ['meta', { citations: chatReply.message.citations, skills: ['physics'] }],
+  ...chatReply.message.content.match(/[\s\S]{1,40}/g).map((t) => ['delta', { text: t }]),
+  ['done', chatReply],
+]);
+
+export const stats = { posts: 1, posts_this_week: 1, achievements: 1, achievements_this_month: 1, study_groups: 0, study_groups_this_month: 0,
+  followers: 12, following: 9, exams_taken: 2, exams_this_week: 1, avg_accuracy: 64, best_score_pct: 70, favorite_equations: 2 };
+const freeLimits = { ai_prompts_per_hour: 10, tutor_threads: 10, tutor_bytes: 100000, media_bytes: 200000 };
+export const billing = { plan: 'free', valid_until: null, limits: freeLimits, free_limits: freeLimits,
+  pro_limits: { ai_prompts_per_hour: 60, tutor_threads: 1000, tutor_bytes: 25000000, media_bytes: 15000000 },
+  usage: { ai: { limit: 10, used: 3, remaining: 7, resets_at: null }, tutor_threads: 2, tutor_bytes: 41000 },
+  payments_enabled: true, test_mode: true, price: { amount: 9900, currency: 'INR', days: 30 } };
+
+// [method, regex on pathname+search, body or (url) => body]; a body {__raw, type} is sent verbatim.
 export const routes = [
+  ['POST', /^\/exam-attempts\/[^/]+\/chat\/stream/, streamReply],
+  ['GET', /^\/me\/stats/, stats],
+  ['GET', /^\/trending/, [{ tag: '#ExamPrep', posts: 14 }, { tag: '#Physics', posts: 9 }, { tag: '#StudyGroup', posts: 4 }]],
+  ['GET', /^\/ai\/skills/, { skills: [{ skill: 'physics', title: 'Physics', documents: 13 }, { skill: 'history', title: 'History', documents: 3 }, { skill: 'geography', title: 'Geography', documents: 2 }], default: 'physics' }],
+  ['GET', /^\/ai\/chats/, { threads: [
+    { attempt_id: 'att-0', question_id: 'q1', exam_title: 'GATE Physics Mock', question: 'Ground-state energy of $V = \\tfrac12 m\\omega^2 x^2$?', messages: 4, bytes: 2400, last_at: ago(5), last_preview: 'Because…' },
+  ], usage: { threads: 2, bytes: 41000, max_threads: 10, max_bytes: 100000, plan: 'free' } }],
+  ['GET', /^\/favorites\/equations/, [
+    { id: 1, latex: 'E_0 = \\frac{\\hbar\\omega}{2}', display: true, skill: 'physics', context: 'Harmonic oscillator ground state', datetime_created: ago(2) },
+    { id: 2, latex: '\\nabla \\cdot \\mathbf{E} = \\rho/\\varepsilon_0', display: false, skill: 'physics', context: "Gauss's law", datetime_created: ago(9) },
+  ]],
+  ['POST', /^\/favorites\/equations/, { id: 3, latex: 'x', display: false, datetime_created: ago(0) }],
+  ['GET', /^\/billing\/status/, billing],
   ['GET', /^\/api\/question_bank\/sample/, sample],
   ['GET', /^\/ai\/quota/, { limit: 10, used: 3, remaining: 7, window_seconds: 3600, resets_at: null }],
   ['GET', /^\/exam-attempts\?/, attemptsList],
