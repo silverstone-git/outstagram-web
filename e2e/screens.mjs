@@ -33,22 +33,65 @@ const viewports = {
   phone: { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
   desktop: { viewport: { width: 1280, height: 800 } },
 };
-// Screens reached by clicking the labelled bottom-nav buttons; null = login (signed out).
-const screens = [['login', null], ['home', 'Home'], ['explore', 'Explore'], ['new-post', 'New post'], ['profile', 'Profile']];
+const nav = (label) => async (page) => {
+  await page.getByRole('button', { name: label, exact: true }).click();
+  await page.waitForLoadState('networkidle');
+};
+const startPractice = async (page) => {
+  await nav('Exams')(page);
+  await page.getByRole('button', { name: 'Quantum Mechanics', exact: true }).click();
+  await page.getByText('Q1', { exact: false }).first().waitFor();
+};
+// Questions are shuffled, so answer whatever type comes up.
+const answerCurrent = async (page) => {
+  if (await page.getByRole('radio').count()) await page.getByRole('radio').nth(1).click();
+  else if (await page.getByRole('checkbox').count()) await page.getByRole('checkbox').nth(1).click();
+  else await page.locator('input[inputmode=decimal]').fill('3');
+};
+const answerAndSubmit = async (page) => {
+  await startPractice(page);
+  await answerCurrent(page);
+  await page.getByRole('button', { name: 'Next' }).click();
+  await page.getByRole('button', { name: 'Finish', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Submit', exact: true }).click();
+  await page.getByText('Score', { exact: true }).waitFor();
+  await page.waitForLoadState('networkidle');
+};
+// [name, signed-in?, steps]. Steps drive the real UI; nothing is navigated by URL.
+const screens = [
+  ['login', false, null],
+  ['home', true, nav('Home')],
+  ['explore', true, nav('Explore')],
+  ['new-post', true, nav('New post')],
+  ['profile', true, nav('Profile')],
+  ['exams', true, nav('Exams')],
+  ['exam-question', true, async (p) => { await startPractice(p); await answerCurrent(p); }],
+  ['exam-palette', true, async (p) => { await startPractice(p); await p.getByRole('button', { name: /^\d+\/\d+$/ }).click(); await p.waitForTimeout(400); }],
+  ['exam-results', true, async (p) => { await answerAndSubmit(p); await p.locator('article button[aria-expanded]').first().click(); }],
+  ['exam-chat', true, async (p) => {
+    await answerAndSubmit(p);
+    await p.locator('article button[aria-expanded]').first().click();
+    await p.getByRole('button', { name: 'Ask the AI tutor' }).click();
+    await p.getByRole('button', { name: 'Why is my answer wrong?' }).click();
+    await p.getByText('zero-point energy', { exact: false }).waitFor();
+    await p.waitForTimeout(400);
+  }],
+];
 
 const report = { base: BASE, api: API.origin, shots: [], consoleErrors: [], pageErrors: [], unmocked: [], overflow: [] };
 const browser = await chromium.launch();
 for (const [vpName, vp] of Object.entries(viewports)) {
-  for (const [name, nav] of screens) {
+  for (const [name, signedIn, steps] of screens) {
     const ctx = await browser.newContext({ ...vp, colorScheme: 'dark' });
     await ctx.route(`${API.origin}/**`, (route) => {
       const u = new URL(route.request().url());
       const key = u.pathname.replace(API.pathname.replace(/\/$/, ''), '') + u.search;
       const hit = routes.find(([m, re]) => m === route.request().method() && re.test(key));
       if (!hit) { report.unmocked.push(`${route.request().method()} ${key}`); return route.fulfill({ status: 404, body: '{}' }); }
-      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(hit[2]) });
+      const body = typeof hit[2] === 'function' ? hit[2](route.request().url()) : hit[2];
+      return route.fulfill({ status: route.request().method() === 'POST' ? 201 : 200, contentType: 'application/json', body: JSON.stringify(body) });
     });
-    if (nav) {
+    if (signedIn) {
       await ctx.addCookies([{ name: 'outstagram_token', value: 'test-token', url: ORIGIN }]);
       await ctx.addInitScript((u) => localStorage.setItem('outstagram_user', JSON.stringify(u)), user);
     }
@@ -56,13 +99,19 @@ for (const [vpName, vp] of Object.entries(viewports)) {
     page.on('console', (m) => m.type() === 'error' && report.consoleErrors.push(`${vpName}/${name}: ${m.text()}`));
     page.on('pageerror', (e) => report.pageErrors.push(`${vpName}/${name}: ${e.message}`));
     await page.goto(ORIGIN + BASE, { waitUntil: 'networkidle' });
-    if (nav) { await page.getByRole('button', { name: nav, exact: true }).click(); await page.waitForLoadState('networkidle'); }
+    try {
+      if (steps) await steps(page);
+    } catch (e) {
+      report.pageErrors.push(`${vpName}/${name}: step failed: ${e.message.split('\n')[0]}`);
+    }
     await page.waitForTimeout(400);
     // Mobile-friendliness check: nothing should be wider than the viewport.
     const sw = await page.evaluate(() => document.documentElement.scrollWidth);
     if (sw > vp.viewport.width) report.overflow.push(`${vpName}/${name}: scrollWidth ${sw} > ${vp.viewport.width}`);
     const file = `${vpName}-${name}.png`;
-    await page.screenshot({ path: path.join(OUT, file), fullPage: true });
+    // Viewport shot = what the user actually sees (fixed bars in place); full-page for long screens.
+    await page.screenshot({ path: path.join(OUT, file) });
+    await page.screenshot({ path: path.join(OUT, `${vpName}-${name}.full.png`), fullPage: true });
     report.shots.push(file);
     await ctx.close();
   }

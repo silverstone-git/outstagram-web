@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Home, User, Plus, Search } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Home, User, Plus, Search, GraduationCap } from 'lucide-react';
 import Cookies from 'js-cookie';
 import { Login } from './components/Login';
 import { Dashboard } from './components/Dashboard';
@@ -10,6 +10,9 @@ import { PostView } from './components/PostView';
 import { SessionExpiredDialog } from './components/SessionExpiredDialog';
 import { SessionExpiredProvider, useSessionExpired } from './context/SessionExpiredContext';
 import { Toaster } from './components/ui/sonner';
+import { toast } from 'sonner';
+import { ExamsTab } from './features/exams/ExamsTab';
+import type { ExamResult } from './features/exams/types';
 import { OutstagramAPI } from './services/api';
 import type { User as ApiUser } from './services/api';
 
@@ -22,7 +25,7 @@ const LoadingSpinner = () => (
   </div>
 );
 
-type Screen = 'dashboard' | 'feed' | 'profile' | 'upload' | 'postView';
+type Screen = 'dashboard' | 'feed' | 'exams' | 'profile' | 'upload' | 'postView';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
@@ -30,6 +33,17 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<ApiUser | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+
+  const shareExamResult = async (result: ExamResult, maxScore: number) => {
+    const caption = `📊 ${result.examName}: ${Number(result.score.toFixed(2))}/${Number(maxScore.toFixed(2))} ` +
+      `(${result.correctAnswers}/${result.totalQuestions} correct, ${Math.round(result.accuracy)}% accuracy) #ExamPrep #Pariksha`;
+    try {
+      await OutstagramAPI.createPost({ media_urls: [], highlighted_by_author: false, caption, post_category: 'Exam Result' });
+      toast.success('Shared to your feed');
+    } catch {
+      toast.error('Could not share your result');
+    }
+  };
 
   useEffect(() => {
     const token = Cookies.get('outstagram_token');
@@ -60,6 +74,10 @@ export default function App() {
   };
 
   const AppContent = () => {
+    // Lives inside AppContent: App re-creates AppContent on every App state change, so state kept in
+    // App would remount the exam mid-attempt.
+    const [immersive, setImmersive] = useState(false); // exam runner/results take the full screen
+    const onImmersive = useCallback((on: boolean) => setImmersive(on), []);
     const { isSessionExpired, showSessionExpiredDialog, hideSessionExpiredDialog } = useSessionExpired();
 
     useEffect(() => {
@@ -81,6 +99,8 @@ export default function App() {
           return <Dashboard user={currentUser} onNavigateToPost={handleNavigateToPost} />;
         case 'feed':
           return <Feed />;
+        case 'exams':
+          return <ExamsTab onImmersive={onImmersive} onShareResult={shareExamResult} />;
         case 'profile':
           return <Profile user={currentUser} onLogout={handleLogout} onNavigateToPost={handleNavigateToPost} />;
         case 'upload':
@@ -108,12 +128,12 @@ export default function App() {
     return (
       <div className="min-h-screen bg-background text-foreground">
         {/* Main Content */}
-        <div className="pb-20">
+        <div className={immersive ? '' : 'pb-20'}>
           {renderScreen()}
         </div>
 
         {/* Bottom Navigation */}
-        <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-2">
+        <div className={`fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] ${immersive ? 'hidden' : ''}`}>
           <div className="flex justify-around items-center max-w-md mx-auto">
             <button
               onClick={() => setCurrentScreen('dashboard')}
@@ -132,6 +152,15 @@ export default function App() {
               }`}
             >
               <Search className="w-6 h-6" />
+            </button>
+            <button
+              onClick={() => setCurrentScreen('exams')}
+              aria-label="Exams"
+              className={`p-3 transition-colors ${
+                currentScreen === 'exams' ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              <GraduationCap className="w-6 h-6" />
             </button>
             <button
               onClick={() => setCurrentScreen('upload')}

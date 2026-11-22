@@ -2,7 +2,7 @@ import Cookies from 'js-cookie';
 
 import { fetchWithHandling, handleResponse } from './handle-response';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
 // Development mode flag - set to false when real API is available
 const USE_MOCK_API = false;
@@ -146,7 +146,7 @@ export class OutstagramAPI {
     Cookies.remove('outstagram_token');
   }
 
-  private static getAuthHeaders(): HeadersInit {
+  public static getAuthHeaders(): HeadersInit {
     const token = this.getAuthToken();
     return {
       'Content-Type': 'application/json',
