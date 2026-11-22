@@ -34,11 +34,10 @@ export function Paywall({ onManageHistory }: { onManageHistory?: () => void }) {
     if (!detail) return;
     setPaying(true);
     try {
-      const plan = await buyPro(detail.code);
+      const plan = await buyPro(detail.code, () => setDetail(null));
       if (plan === 'pro') {
         toast.success('Welcome to Pro! Your limits are raised.');
         window.dispatchEvent(new CustomEvent('planchange', { detail: plan }));
-        setDetail(null);
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Payment failed');

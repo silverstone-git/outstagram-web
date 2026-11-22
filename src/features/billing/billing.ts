@@ -83,7 +83,7 @@ function loadCheckout(): Promise<void> {
 
 /** Creates an order, opens Razorpay Checkout and verifies the payment server-side. Resolves with
  *  the new plan, or null if the user closed the checkout. */
-export async function buyPro(reason: string): Promise<BillingStatus['plan'] | null> {
+export async function buyPro(reason: string, onBeforeOpen?: () => void): Promise<BillingStatus['plan'] | null> {
   const [order] = await Promise.all([BillingAPI.order(reason), loadCheckout()]);
   if (!window.Razorpay) throw new Error('Razorpay did not load');
   const color = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#047857';
@@ -96,6 +96,12 @@ export async function buyPro(reason: string): Promise<BillingStatus['plan'] | nu
       modal: { ondismiss: () => resolve(null), confirm_close: true },
     });
     rzp.on('payment.failed', (r) => reject(new Error(r.error?.description || 'Payment failed')));
-    rzp.open();
+    // Any open modal (our paywall sheet) traps focus and pointer events, which makes Checkout's
+    // inputs unclickable: close it first, and give it a frame to release body pointer-events.
+    onBeforeOpen?.();
+    window.setTimeout(() => {
+      document.body.style.pointerEvents = '';
+      rzp.open();
+    }, 350);
   });
 }
