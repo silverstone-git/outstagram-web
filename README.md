@@ -40,6 +40,11 @@ VITE_API_BASE_URL=http://your-api-url.com
 
 If you do not create a `.env` file or set this variable, the application will default to `http://localhost:3000` for the API base URL.
 
+Optional:
+
+- `VITE_BASE`: path the build is served under (default `/`; previews use `/outstagram/`).
+- `VITE_API_R2_PUBLIC_ENDPOINT`: public R2 URL for question images.
+
 ### Running the Application
 
 -   **Development:**
@@ -57,6 +62,33 @@ If you do not create a `.env` file or set this variable, the application will de
     ```sh
     bun run preview
     ```
+
+## Exams (Pariksha inside Outstagram)
+
+The **Exams** tab (`src/features/exams/`) is the Pariksha exam engine, built into the app:
+
+- `engine.ts`: ported from pariksha with the same scoring (sections, negative marks, `maxAttempts`). Also preset mocks (GATE, CSIR NET, TIFR, BARC) and quick practice, both sampled from the backend question bank.
+- `ExamRunner.tsx`: mobile-first exam screen with a sticky timer, large tap targets, a bottom-sheet question palette, flagging and auto-submit.
+- `ExamResults.tsx` + `QuestionChat.tsx`: score and topic breakdown, a filtered review, and an **AI tutor** for every question. Replies are grounded in the agentcyto textbooks with citations, and each user gets 10 prompts per hour.
+- `examApi.ts`: `/exam-attempts`, `/exam-attempts/{id}/chat`, `/ai/quota`, `/pariksha`.
+- `Latex.tsx`: KaTeX rendering, copied from pariksha.
+
+## CI, screenshots and previews
+
+Nothing needs to be built locally (the dev server has very little RAM). Every push runs `.github/workflows/ci.yml`:
+
+1. `bun install`, lint (advisory for now), type-check and build with `VITE_BASE=/outstagram/` and `VITE_API_BASE_URL` = repo variable `PREVIEW_API_BASE_URL` (currently `outsie-staging`).
+2. `e2e/screens.mjs` serves `dist`, fakes the API with `e2e/fixtures.mjs`, drives real flows (feed, profile, exams, a practice exam, results, the AI tutor) and saves phone (390×844) and desktop screenshots. Each screen gets a viewport shot and a full-page shot. `report.json` lists console/page errors, API calls with no fixture, and horizontal overflow. Page errors fail the job.
+3. `dist` and `screenshots` are uploaded as artifacts.
+
+```sh
+scripts/preview.sh shots   # download screenshots + report of this branch's latest run
+scripts/preview.sh deploy  # publish that run's dist to https://aryan.cfd/outstagram/
+```
+
+When you add a screen or an API call, add a flow to `e2e/screens.mjs` and a fixture to `e2e/fixtures.mjs`.
+
+See `TODO.md` for the roadmap.
 
 ## For Future Contributors
 
