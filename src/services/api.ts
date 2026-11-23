@@ -287,6 +287,60 @@ export class OutstagramAPI {
     return data;
   }
 
+  // ---- Social sign-in (Google via Supabase Auth, PKCE). The backend says which providers are on. ----
+  private static PKCE_KEY = 'outstagram_pkce_verifier';
+
+  static async getAuthProviders(): Promise<{ supabase_url: string | null; providers: string[] }> {
+    try {
+      const r = await fetch(`${API_BASE_URL}/auth/providers`);
+      if (r.ok) return await r.json();
+    } catch { /* older backend or offline: no social buttons */ }
+    return { supabase_url: null, providers: [] };
+  }
+
+  static async startSocialLogin(supabaseUrl: string, provider: string): Promise<void> {
+    const b64url = (bytes: Uint8Array) =>
+      btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)));
+    const challenge = b64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))));
+    sessionStorage.setItem(this.PKCE_KEY, verifier);
+    const params = new URLSearchParams({
+      provider,
+      redirect_to: window.location.origin + window.location.pathname,
+      code_challenge: challenge,
+      code_challenge_method: 's256',
+    });
+    window.location.assign(`${supabaseUrl}/auth/v1/authorize?${params}`);
+  }
+
+  /** On return from the provider: exchanges ?code= for an outsie session. Null when this isn't a callback. */
+  static async completeSocialLogin(): Promise<AuthResponse | null> {
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get('code');
+    const providerError = url.searchParams.get('error_description') || url.searchParams.get('error');
+    const verifier = sessionStorage.getItem(this.PKCE_KEY);
+    if (!code && !providerError) return null;
+    // Strip the OAuth params so a refresh doesn't replay them
+    for (const k of ['code', 'error', 'error_code', 'error_description', 'state']) url.searchParams.delete(k);
+    window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+    sessionStorage.removeItem(this.PKCE_KEY);
+    if (providerError) throw new Error(providerError);
+    if (!verifier) throw new Error('Sign-in session expired, please try again');
+    const r = await fetch(`${API_BASE_URL}/auth/supabase`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ auth_code: code, code_verifier: verifier }),
+    });
+    if (!r.ok) {
+      let detail = 'Sign-in failed, please try again';
+      try { const j = await r.json(); if (typeof j.detail === 'string') detail = j.detail; } catch { /* not JSON */ }
+      throw new Error(detail);
+    }
+    const data = (await r.json()) as AuthResponse;
+    this.setAuthToken(data.access_token);
+    return data;
+  }
+
   static async register(userData: RegisterData): Promise<RegisterResponse | null> {
     if (USE_MOCK_API) {
       await this.delay();

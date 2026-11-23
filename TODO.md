@@ -34,6 +34,7 @@ Last updated: 2026-11-23.
 
 ## Later
 
+- [x] DB moved from Neon (Frankfurt) to Supabase (Tokyo, prod `outsie` + staging `outsie-staging`), 2026-11-23. Delete the Neon project after ~1 week once nothing regresses
 - [ ] **Sign in with GitHub** (OAuth): backend callback that issues the usual outsie JWT; link to an existing account by verified email
 - [ ] **Sign in with Google** (OAuth / Google Identity Services): same flow as GitHub
 - [ ] outstagram-app (Android): build in CI (APK artifacts), reuse the exam engine and the AI tutor API
