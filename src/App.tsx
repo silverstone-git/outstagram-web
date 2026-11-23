@@ -14,6 +14,10 @@ import { toast } from 'sonner';
 import { ExamsTab } from './features/exams/ExamsTab';
 import type { ExamResult } from './features/exams/types';
 import { Paywall } from './features/billing/Paywall';
+import { Landing } from './features/public/Landing';
+import { PolicyPage } from './features/public/PolicyPages';
+import { PublicLayout } from './features/public/PublicLayout';
+import { currentPublicPage, pageHref } from './features/public/routes';
 import type { PostCategory } from './types/post';
 import { OutstagramAPI } from './services/api';
 import type { User as ApiUser } from './services/api';
@@ -63,7 +67,23 @@ export default function App() {
     setIsLoading(false);
   }, []);
 
+  // Signed-out navigation between the landing page and the login form (no router). Only listens while
+  // signed out: re-rendering App remounts AppContent, which must not happen mid-exam.
+  const [, setUrlTick] = useState(0);
+  const navigate = (to: string) => { window.history.pushState(null, '', to); setUrlTick((n) => n + 1); };
+  useEffect(() => {
+    if (isAuthenticated) return;
+    let last = window.location.pathname + window.location.search;
+    const onPop = () => {
+      const now = window.location.pathname + window.location.search;
+      if (now !== last) { last = now; setUrlTick((n) => n + 1); }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [isAuthenticated]);
+
   const handleLoginSuccess = (user: ApiUser) => {
+    if (new URLSearchParams(window.location.search).has('login')) window.history.replaceState(null, '', pageHref(''));
     setIsAuthenticated(true);
     setCurrentUser(user);
     localStorage.setItem('outstagram_user', JSON.stringify(user));
@@ -126,10 +146,27 @@ export default function App() {
       return <LoadingSpinner />;
     }
 
+    // Public pages (/pricing, /terms, /privacy, /refunds, /contact) work signed in or out.
+    const publicPage = currentPublicPage();
+    const toApp = () => { window.location.href = pageHref(''); };
+    if (publicPage) {
+      return (
+        <PublicLayout loggedIn={isAuthenticated} onLogin={toApp}>
+          <PolicyPage page={publicPage} onStart={toApp} />
+        </PublicLayout>
+      );
+    }
+
     if (!isAuthenticated) {
+      // Returning from Google (?code=) or ?login goes straight to the sign-in form; otherwise the landing page.
+      const params = new URLSearchParams(window.location.search);
+      const wantsLogin = params.has('code') || params.has('error') || params.has('login');
+      const openLogin = () => navigate(`${pageHref('')}?login`);
       return (
         <>
-          <Login onLoginSuccess={handleLoginSuccess} />
+          {wantsLogin
+            ? <Login onLoginSuccess={handleLoginSuccess} onBack={() => navigate(pageHref(''))} />
+            : <PublicLayout onLogin={openLogin}><Landing onStart={openLogin} /></PublicLayout>}
           <Toaster />
         </>
       );

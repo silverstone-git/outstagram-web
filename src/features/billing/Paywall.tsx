@@ -3,6 +3,7 @@ import { Check, Crown, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from '../../components/ui/drawer';
+import { pageHref } from '../public/routes';
 import { BillingAPI, buyPro, type BillingStatus, type PaywallDetail } from './billing';
 
 const HEADLINE: Record<string, string> = {
@@ -103,6 +104,10 @@ export function Paywall({ onManageHistory }: { onManageHistory?: () => void }) {
               ) : (
                 <p className="rounded-xl bg-secondary/60 p-3 text-sm text-muted-foreground">Payments aren't set up on this server yet.</p>
               )}
+              <p className="text-xs text-muted-foreground">
+                By paying you agree to the <a className="underline" href={pageHref('terms')} target="_blank" rel="noreferrer">Terms</a> and{' '}
+                <a className="underline" href={pageHref('refunds')} target="_blank" rel="noreferrer">Refund policy</a> (full refund within 7 days).
+              </p>
               {status.test_mode && status.payments_enabled && (
                 <p className="text-xs text-muted-foreground">
                   Test mode: no real money moves. Pay by UPI with the ID <code>success@razorpay</code> (or <code>failure@razorpay</code> to see a failed payment).

@@ -86,6 +86,11 @@ export const routes = [
   ]],
   ['POST', /^\/favorites\/equations/, { id: 3, latex: 'x', display: false, datetime_created: ago(0) }],
   ['GET', /^\/billing\/status/, billing],
+  ['GET', /^\/billing\/plans/, { currency: 'INR', plans: [
+    { id: 'free', price: 0, days: null, limits: freeLimits },
+    { id: 'pro', price: 99, days: 30, limits: { ai_prompts_per_hour: 60, tutor_threads: 1000, tutor_bytes: 25000000, media_bytes: 15000000 } }] }],
+  ['GET', /^\/api\/question_bank\/topics$/, [{ name: 'Quantum Mechanics', slug: 'quantum_mechanics', count: 120 }, { name: 'Electrodynamics', slug: 'electrodynamics', count: 80 }]],
+  ['GET', /^\/auth\/providers/, { supabase_url: null, providers: [] }],
   ['GET', /^\/api\/question_bank\/sample/, sample],
   ['GET', /^\/ai\/quota/, { limit: 10, used: 3, remaining: 7, window_seconds: 3600, resets_at: null }],
   ['GET', /^\/exam-attempts\?/, attemptsList],

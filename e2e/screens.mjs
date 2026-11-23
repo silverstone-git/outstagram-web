@@ -57,9 +57,13 @@ const answerAndSubmit = async (page) => {
   await page.getByText('Score', { exact: true }).waitFor();
   await page.waitForLoadState('networkidle');
 };
-// [name, signed-in?, steps]. Steps drive the real UI; nothing is navigated by URL.
+// [name, signed-in?, steps]. Steps drive the real UI; only the public pages are opened by URL.
 const screens = [
-  ['login', false, null],
+  ['landing', false, null],
+  ['login', false, async (p) => { await p.getByRole('button', { name: 'Log in' }).click(); await p.getByText('By continuing you agree').waitFor(); }],
+  ['pricing', false, async (p) => { await p.goto(ORIGIN + BASE + 'pricing/', { waitUntil: 'networkidle' }); await p.getByText('Pro pass').waitFor(); }],
+  ['refunds', false, async (p) => { await p.goto(ORIGIN + BASE + 'refunds/', { waitUntil: 'networkidle' }); }],
+  ['contact', false, async (p) => { await p.goto(ORIGIN + BASE + 'contact/', { waitUntil: 'networkidle' }); }],
   ['home', true, nav('Home')],
   ['home-light', true, async (p) => { await nav('Home')(p); await p.getByRole('switch', { name: /light mode/i }).first().click(); await p.waitForTimeout(300); }],
   ['explore', true, nav('Explore')],
