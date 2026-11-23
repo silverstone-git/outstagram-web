@@ -32,7 +32,8 @@ Last updated: 2026-11-23.
 - [ ] Admin rollout: set `OUTSIE_ADMIN_EMAILS` on `outsie` (+ staging), add `https://pariksha.aryan.cfd/**` to Supabase Auth redirect URLs and the pariksha origin to `OUTSTAGRAM_ALLOWED_ORIGINS`, rotate `PARIKSHA_ADMIN_SECRET` to 32+ chars (or unset it)
 - [ ] agentcyto box: deploy `feat/kb-admin-gate` (`docker compose up -d bff`), make `repo/` writable by the container's APP_UID, add `https://t.aryan.cfd/agentcyto/**` to Supabase redirect URLs
 - [ ] outsie: after deploying, re-run `scripts/supabase-lockdown.sql` (new `exampreset` table)
-- [ ] Policies: add the legal name and registered address of the business to Terms/Contact (Razorpay KYC asks for them); have the Terms/Privacy/Refunds text reviewed
+- [x] Policies: legal name (Aryan Sidhwani, sole proprietor) on Terms, Contact and footer
+- [ ] Policies: registered address — deliberately left off until the company is registered (Razorpay KYC may push back); have the Terms/Privacy/Refunds text reviewed
 
 - [ ] Production rollout: add `LITELLM_MASTER_KEY` (Secret Manager) to `outsie`, allow the live web origin in CORS, merge `feat/ai-exams` to `main`, merge the web branches
 - [x] Staging Razorpay: run `outstagram/scripts/setup-razorpay-staging.sh` (secrets + deploy), add the webhook in the Razorpay test dashboard, deploy the web preview, test with UPI `success@razorpay`

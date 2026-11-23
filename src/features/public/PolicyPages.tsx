@@ -22,6 +22,7 @@ function Terms() {
   return (
     <Doc title="Terms of Service">
       <p>These terms govern your use of Outstagram (the website, the web app and related services, together "the Service"). By creating an account or using the Service you agree to them. If you do not agree, please do not use the Service.</p>
+      <p>Outstagram is operated by {CONTACT.legalName}, an individual based in {CONTACT.country} ("we", "us").</p>
       <h2>1. Who can use Outstagram</h2>
       <p>The Service is for students and learners. If you are under 18, you may use it only with the consent and supervision of a parent or guardian, who accepts these terms on your behalf.</p>
       <h2>2. Your account</h2>
@@ -140,7 +141,7 @@ function Contact() {
         </a>
       </div>
       <p className="flex items-center gap-2 text-muted-foreground"><Clock className="h-4 w-4" />We reply to email within 2 business days.</p>
-      <p>Operated from {CONTACT.country}.</p>
+      <p>Outstagram is operated by {CONTACT.legalName}, {CONTACT.country}.</p>
     </Doc>
   );
 }

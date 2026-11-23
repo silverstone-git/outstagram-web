@@ -46,7 +46,7 @@ export function PublicLayout({ children, onLogin, loggedIn }: Props) {
           </div>
         </div>
         <div className="border-t border-border py-4 text-center text-xs text-muted-foreground">
-          © {new Date().getFullYear()} Outstagram. All rights reserved.
+          © {new Date().getFullYear()} Outstagram, operated by {CONTACT.legalName}. All rights reserved.
         </div>
       </footer>
     </div>
