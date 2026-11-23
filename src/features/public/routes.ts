@@ -15,6 +15,8 @@ export const pageHref = (p: PublicPage | '') => `${base}/${p ? `${p}/` : ''}`;
 // Business contact details shown on the policy pages and footer.
 export const CONTACT = {
   brand: 'Outstagram',
+  // Sole proprietor until a company is registered; add the registered address then.
+  legalName: 'Aryan Sidhwani',
   email: 'me@aryan.cfd',
   phone: '+91 99715 04957',
   phoneHref: 'tel:+919971504957',
