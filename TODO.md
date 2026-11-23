@@ -23,11 +23,15 @@ Last updated: 2026-11-23.
 - [x] Pariksha admin: "Cloud" generation via `POST /api/question_bank/generate` with skill + audience (`pariksha feat/cloud-generate`)
 - [x] CI build/type-check for pariksha and agentcyto's frontend
 - [x] Admin over the internet: Pariksha `/?admin` with Google sign-in, allow-listed on outsie (`OUTSIE_ADMIN_EMAILS`, 2h admin token); no default admin secret; review/delete questions, upload JSON, new groups (`outstagram feat/admin-google`, `pariksha feat/cloud-admin`)
+- [x] KB admin in agentcyto behind outsie Google sign-in (X-Admin-Token checked via `/admin/whoami`); Markdown upload/delete into `repo/<skill>/`; the hard-coded admin password is gone (`agentcyto feat/kb-admin-gate`)
+- [x] Pariksha admin: edit/add questions, download bank JSON, exam types (server presets), publish exams, community exam moderation (`outstagram feat/admin-google`, `pariksha feat/cloud-admin`)
 - [x] Landing page for signed-out visitors + `/pricing` (live from `GET /billing/plans`), `/terms`, `/privacy`, `/refunds`, `/contact` (`outstagram-web feat/landing-legal`)
 
 ## Next
 
 - [ ] Admin rollout: set `OUTSIE_ADMIN_EMAILS` on `outsie` (+ staging), add `https://pariksha.aryan.cfd/**` to Supabase Auth redirect URLs and the pariksha origin to `OUTSTAGRAM_ALLOWED_ORIGINS`, rotate `PARIKSHA_ADMIN_SECRET` to 32+ chars (or unset it)
+- [ ] agentcyto box: deploy `feat/kb-admin-gate` (`docker compose up -d bff`), make `repo/` writable by the container's APP_UID, add `https://t.aryan.cfd/agentcyto/**` to Supabase redirect URLs
+- [ ] outsie: after deploying, re-run `scripts/supabase-lockdown.sql` (new `exampreset` table)
 - [ ] Policies: add the legal name and registered address of the business to Terms/Contact (Razorpay KYC asks for them); have the Terms/Privacy/Refunds text reviewed
 
 - [ ] Production rollout: add `LITELLM_MASTER_KEY` (Secret Manager) to `outsie`, allow the live web origin in CORS, merge `feat/ai-exams` to `main`, merge the web branches
