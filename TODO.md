@@ -26,8 +26,8 @@ Last updated: 2026-11-23.
 ## Next
 
 - [ ] Production rollout: add `LITELLM_MASTER_KEY` (Secret Manager) to `outsie`, allow the live web origin in CORS, merge `feat/ai-exams` to `main`, merge the web branches
-- [ ] Staging Razorpay: run `outstagram/scripts/setup-razorpay-staging.sh` (secrets + deploy), add the webhook in the Razorpay test dashboard, deploy the web preview, test with UPI `success@razorpay`
-- [ ] agentcyto box: deploy `feat/kb-skills` (`docker compose up -d bff` with the new `../repo` mount) and add the nginx `location = /agentcyto/api/kb/skills` exemption (docs/knowledge-base.md §9.0)
+- [x] Staging Razorpay: run `outstagram/scripts/setup-razorpay-staging.sh` (secrets + deploy), add the webhook in the Razorpay test dashboard, deploy the web preview, test with UPI `success@razorpay`
+- [x] agentcyto box: deploy `feat/kb-skills` (`docker compose up -d bff` with the new `../repo` mount) and add the nginx `location = /agentcyto/api/kb/skills` exemption (docs/knowledge-base.md §9.0)
 - [ ] Add subject content: `repo/history/`, `repo/geography/`, `repo/chemistry/` Markdown → ingest; question-bank groups for non-physics subjects so Quick practice offers them
 - [ ] Production Razorpay: live keys (after KYC) in Secret Manager for `outsie`, webhook to `https://outsie.aryan.cfd/billing/razorpay/webhook`
 - [ ] Make lint blocking in CI once the existing lint debt is fixed
