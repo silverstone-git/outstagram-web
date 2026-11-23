@@ -35,8 +35,8 @@ Last updated: 2026-11-23.
 ## Later
 
 - [x] DB moved from Neon (Frankfurt) to Supabase (Tokyo, prod `outsie` + staging `outsie-staging`), 2026-11-23. Delete the Neon project after ~1 week once nothing regresses
-- [ ] **Sign in with GitHub** (OAuth): backend callback that issues the usual outsie JWT; link to an existing account by verified email
-- [ ] **Sign in with Google** (OAuth / Google Identity Services): same flow as GitHub
+- [ ] **Sign in with GitHub**: enable the provider in both Supabase projects, add `github` to `OUTSTAGRAM_SOCIAL_PROVIDERS` on Cloud Run (code already handles it)
+- [x] **Sign in with Google** via Supabase Auth (PKCE; backend `/auth/supabase` links by verified email), live on prod + staging 2026-11-23. Google OAuth app is in test mode: publish it in Google Cloud console before opening to everyone
 - [ ] outstagram-app (Android): build in CI (APK artifacts), reuse the exam engine and the AI tutor API
 - [ ] Custom exam builder in the Exams tab (pariksha's advanced preset editor)
 - [ ] Per-user rate limiting on other expensive endpoints (media upload)
