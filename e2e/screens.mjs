@@ -61,7 +61,7 @@ const answerAndSubmit = async (page) => {
 const screens = [
   ['landing', false, null],
   ['login', false, async (p) => { await p.getByRole('button', { name: 'Log in' }).click(); await p.getByText('By continuing you agree').waitFor(); }],
-  ['pricing', false, async (p) => { await p.goto(ORIGIN + BASE + 'pricing/', { waitUntil: 'networkidle' }); await p.getByText('Pro pass').waitFor(); }],
+  ['pricing', false, async (p) => { await p.goto(ORIGIN + BASE + 'pricing/', { waitUntil: 'networkidle' }); await p.getByText('Pro pass', { exact: true }).waitFor(); }],
   ['refunds', false, async (p) => { await p.goto(ORIGIN + BASE + 'refunds/', { waitUntil: 'networkidle' }); }],
   ['contact', false, async (p) => { await p.goto(ORIGIN + BASE + 'contact/', { waitUntil: 'networkidle' }); }],
   ['home', true, nav('Home')],
