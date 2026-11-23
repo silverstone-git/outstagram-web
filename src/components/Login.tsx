@@ -7,10 +7,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { GraduationCap, LogIn, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { OutstagramAPI } from '../services/api';
+import { pageHref } from '../features/public/routes';
 import type { User as ApiUser, RegisterData, LoginCredentials } from '../services/api';
 
 interface LoginProps {
   onLoginSuccess: (user: ApiUser) => void;
+  onBack?: () => void;
 }
 
 const GoogleIcon = () => (
@@ -22,7 +24,7 @@ const GoogleIcon = () => (
   </svg>
 );
 
-function Login({ onLoginSuccess }: LoginProps) {
+function Login({ onLoginSuccess, onBack }: LoginProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [social, setSocial] = useState<{ supabase_url: string | null; providers: string[] }>({ supabase_url: null, providers: [] });
   const [socialBusy, setSocialBusy] = useState(false);
@@ -110,6 +112,9 @@ function Login({ onLoginSuccess }: LoginProps) {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-6">
+        {onBack && (
+          <button type="button" onClick={onBack} className="text-sm text-muted-foreground hover:text-foreground">&larr; Back</button>
+        )}
         {/* Header */}
         <div className="text-center space-y-4">
           <div className="flex items-center justify-center gap-2">
@@ -296,6 +301,10 @@ function Login({ onLoginSuccess }: LoginProps) {
             </div>
           )}
         </Card>
+        <p className="text-center text-xs text-muted-foreground">
+          By continuing you agree to our <a className="underline" href={pageHref('terms')}>Terms</a> and{' '}
+          <a className="underline" href={pageHref('privacy')}>Privacy Policy</a>.
+        </p>
       </div>
     </div>
   );

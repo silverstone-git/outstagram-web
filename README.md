@@ -109,3 +109,7 @@ We welcome contributions to Froutstagram! To ensure a smooth development process
 - **Uploads**: photos are compressed in the browser (`src/lib/compress.ts`) before the plan's per-file limit is checked.
 - **Theme**: `src/lib/theme.tsx` toggles `.dark` on `<html>` (dark is the default; light palette in `:root`), remembered in `localStorage` and applied before first paint by a script in `index.html`.
 - **Numbers**: Dashboard and Profile read `GET /me/stats` and `GET /trending`; nothing is hard-coded.
+
+## Public pages
+
+Signed-out visitors see a landing page (`src/features/public/`). `/pricing`, `/terms`, `/privacy`, `/refunds` and `/contact` are real URLs on any static host: the build copies `index.html` into each folder and the app renders the page from the pathname. Prices come from outsie's public `GET /billing/plans`; contact details live in `src/features/public/routes.ts`.
