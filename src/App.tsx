@@ -20,12 +20,13 @@ import { PublicLayout } from './features/public/PublicLayout';
 import { currentPublicPage, pageHref } from './features/public/routes';
 import type { PostCategory } from './types/post';
 import { OutstagramAPI } from './services/api';
+import { BrandMark } from './components/Brand';
 import type { User as ApiUser } from './services/api';
 
 const LoadingSpinner = () => (
   <div className="min-h-screen bg-background flex items-center justify-center">
     <div className="text-center">
-      <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+      <BrandMark className="h-16 w-16 mx-auto mb-4 animate-pulse" />
       <p className="text-muted-foreground">Loading Outstagram...</p>
     </div>
   </div>

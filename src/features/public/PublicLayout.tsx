@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
-import { GraduationCap, Mail, Phone } from 'lucide-react';
+import { Mail, Phone } from 'lucide-react';
+import { BrandLogo } from '../../components/Brand';
 import { Button } from '../../components/ui/button';
 import { CONTACT, pageHref } from './routes';
 
@@ -10,11 +11,8 @@ export function PublicLayout({ children, onLogin, loggedIn }: Props) {
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
-          <a href={pageHref('')} className="flex items-center gap-2 font-bold text-lg">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-accent text-primary-foreground">
-              <GraduationCap className="h-5 w-5" />
-            </span>
-            Outstagram
+          <a href={pageHref('')} className="flex items-center">
+            <BrandLogo size="sm" />
           </a>
           <nav className="ml-auto flex items-center gap-1 sm:gap-4 text-sm">
             <a href={pageHref('pricing')} className="hidden sm:inline text-muted-foreground hover:text-foreground">Pricing</a>
@@ -29,7 +27,7 @@ export function PublicLayout({ children, onLogin, loggedIn }: Props) {
       <footer className="border-t border-border bg-card/50">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-3 text-sm">
           <div>
-            <div className="font-semibold mb-2">Outstagram</div>
+            <BrandLogo size="sm" className="mb-2" />
             <p className="text-muted-foreground">Practice exams, an AI tutor that knows your textbooks, and a feed to share your wins. Made in {CONTACT.country}.</p>
           </div>
           <div className="flex flex-col gap-1.5">
