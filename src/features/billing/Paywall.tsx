@@ -110,7 +110,7 @@ export function Paywall({ onManageHistory }: { onManageHistory?: () => void }) {
               </p>
               {status.test_mode && status.payments_enabled && (
                 <p className="text-xs text-muted-foreground">
-                  Test mode: no real money moves. Pay by UPI with the ID <code>success@razorpay</code> (or <code>failure@razorpay</code> to see a failed payment).
+                  Test mode: no real money moves. Pick Netbanking, any bank, then <strong>Success</strong> (or Failure) on the demo bank page. Test card: <code>4111 1111 1111 1111</code>, any future date and CVV.
                 </p>
               )}
             </>
