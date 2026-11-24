@@ -4,7 +4,8 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { GraduationCap, LogIn, UserPlus } from 'lucide-react';
+import { LogIn, UserPlus } from 'lucide-react';
+import { BrandLogo, BrandMark } from './Brand';
 import { toast } from 'sonner';
 import { OutstagramAPI } from '../services/api';
 import { pageHref } from '../features/public/routes';
@@ -117,13 +118,11 @@ function Login({ onLoginSuccess, onBack }: LoginProps) {
         )}
         {/* Header */}
         <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-2">
-            <GraduationCap className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl font-bold text-primary">Outstagram</h1>
+          <div className="flex flex-col items-center gap-3">
+            <BrandMark className="h-16 w-16" />
+            <h1><BrandLogo size="lg" showMark={false} /></h1>
           </div>
-          <p className="text-muted-foreground">
-            Social platform for students to share achievements, connect with study groups, and grow together! 🎓
-          </p>
+          <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">Study smarter with AI</p>
         </div>
 
         {/* Auth Forms */}
