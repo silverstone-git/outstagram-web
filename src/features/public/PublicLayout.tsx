@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
-import { Mail, Phone } from 'lucide-react';
+import { Download, Globe, Mail, Phone } from 'lucide-react';
 import { BrandLogo } from '../../components/Brand';
 import { Button } from '../../components/ui/button';
-import { CONTACT, pageHref } from './routes';
+import { APPS, CONTACT, pageHref } from './routes';
 
 type Props = { children: ReactNode; onLogin: () => void; loggedIn?: boolean };
 
@@ -29,6 +29,12 @@ export function PublicLayout({ children, onLogin, loggedIn }: Props) {
           <div>
             <BrandLogo size="sm" className="mb-2" />
             <p className="text-muted-foreground">Practice exams, an AI tutor that knows your textbooks, and a feed to share your wins. Made in {CONTACT.country}.</p>
+            <div className="mt-4 flex flex-col gap-1.5">
+              <div className="font-semibold mb-1">Get the app</div>
+              <button type="button" onClick={onLogin} className="flex items-center gap-2 text-left text-muted-foreground hover:text-foreground"><Globe className="h-4 w-4" />Web: works in your browser</button>
+              <a className="flex items-center gap-2 text-muted-foreground hover:text-foreground" href={APPS.androidApk} target="_blank" rel="noopener noreferrer"><Download className="h-4 w-4" />Android (APK)</a>
+              <span className="text-muted-foreground">iOS: coming soon</span>
+            </div>
           </div>
           <div className="flex flex-col gap-1.5">
             <div className="font-semibold mb-1">Policies</div>

@@ -1,7 +1,8 @@
-import { BookOpenCheck, Bot, Trophy, Users, Sigma, Timer, ArrowRight, Sparkles } from 'lucide-react';
+import { BookOpenCheck, Bot, Trophy, Users, Sigma, Timer, ArrowRight, Sparkles, Smartphone, Download, Clock, Globe } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { PricingCards } from './PricingCards';
 import { useBankSize } from './plans';
+import { APPS } from './routes';
 
 const features = [
   { icon: Timer, title: 'Real exam practice', body: 'Timed papers with MCQ, multi-correct and numerical questions, just like the real thing. Proper maths rendering, no blurry screenshots.' },
@@ -22,7 +23,7 @@ const faqs = [
   ['Is Outstagram free?', 'Yes. Practice exams are free, and the free plan includes AI tutor messages every hour. A Pro pass raises the limits for a month when you need more.'],
   ['Does Pro renew automatically?', 'No. Pro is a one-time pass. When it ends you go back to Free; nothing is charged again unless you buy another pass.'],
   ['Which subjects are covered?', 'We started with physics and are adding more subjects. More are on the way.'],
-  ['Can I use it on my phone?', 'Yes, Outstagram is built mobile-first and works in any modern browser.'],
+  ['Can I use it on my phone?', 'Yes. The web version works in any modern mobile browser, and there is an Android app you can download from the "Use it anywhere" section above. The iOS app is in the works.'],
 ];
 
 export function Landing({ onStart }: { onStart: () => void }) {
@@ -98,6 +99,26 @@ export function Landing({ onStart }: { onStart: () => void }) {
         <h2 className="text-center text-3xl font-bold">Simple, student-friendly pricing</h2>
         <p className="mt-2 mb-10 text-center text-muted-foreground">Start free. Upgrade only when exam season gets serious.</p>
         <PricingCards onStart={onStart} />
+      </section>
+
+      {/* Get the app */}
+      <section id="app" className="mx-auto max-w-4xl px-4 py-16 scroll-mt-20">
+        <div className="flex flex-col items-center gap-6 rounded-3xl border border-border bg-card p-8 text-center sm:flex-row sm:text-left">
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary"><Smartphone className="h-7 w-7" /></span>
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold">Use it anywhere</h2>
+            <p className="mt-1 text-sm text-muted-foreground">The web version works right now in any browser, on your laptop or your phone. Prefer an app? Download the Outstagram Android app. The iOS app is in the works.</p>
+          </div>
+          <div className="flex shrink-0 flex-col gap-2 sm:items-end">
+            <Button size="lg" onClick={onStart}>
+              <Globe className="h-4 w-4" /> Use the web version
+            </Button>
+            <Button size="lg" variant="outline" asChild>
+              <a href={APPS.androidApk} target="_blank" rel="noopener noreferrer"><Download className="h-4 w-4" /> Download for Android</a>
+            </Button>
+            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Clock className="h-3.5 w-3.5" /> iOS: coming soon</span>
+          </div>
+        </div>
       </section>
 
       {/* FAQ */}

@@ -22,3 +22,8 @@ export const CONTACT = {
   phoneHref: 'tel:+919971504957',
   country: 'India',
 };
+
+// Native apps. Android APK is shared from Google Drive until it is on the Play Store.
+export const APPS = {
+  androidApk: 'https://drive.google.com/file/d/1ZcI5a8WsMf0UpH7n9QHN7tbAAzmVUQ-x/view?usp=sharing',
+};
