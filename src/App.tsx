@@ -18,7 +18,7 @@ import { Paywall } from './features/billing/Paywall';
 import { Landing } from './features/public/Landing';
 import { PolicyPage } from './features/public/PolicyPages';
 import { PublicLayout } from './features/public/PublicLayout';
-import { currentPublicPage, pageHref } from './features/public/routes';
+import { currentPublicPage, pageHref, sharedPostId } from './features/public/routes';
 import type { PostCategory } from './types/post';
 import { OutstagramAPI } from './services/api';
 import { BrandMark } from './components/Brand';
@@ -36,11 +36,12 @@ const LoadingSpinner = () => (
 type Screen = 'dashboard' | 'feed' | 'exams' | 'profile' | 'upload' | 'postView';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
+  // a shared link (/p/?id=...) opens that post, after sign-in if needed
+  const [currentScreen, setCurrentScreen] = useState<Screen>(() => (sharedPostId() ? 'postView' : 'dashboard'));
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<ApiUser | null>(null);
-  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(() => sharedPostId());
   const [composeCategory, setComposeCategory] = useState<PostCategory | undefined>(undefined);
   const compose = (c: PostCategory) => { setComposeCategory(c); setCurrentScreen('upload'); };
   const manageTutorHistory = () => {
@@ -137,7 +138,10 @@ export default function App() {
         case 'upload':
           return <UploadPost key={composeCategory ?? 'default'} user={currentUser} initialCategory={composeCategory} />;
         case 'postView':
-          return <PostView postId={selectedPostId!} onBack={() => setCurrentScreen('dashboard')} />;
+          return <PostView postId={selectedPostId!} onBack={() => {
+            if (sharedPostId()) window.history.replaceState(null, '', pageHref(''));
+            setCurrentScreen('dashboard');
+          }} />;
         default:
           return <Dashboard user={currentUser} onNavigateToPost={handleNavigateToPost}
             onOpenExams={() => setCurrentScreen('exams')} onCompose={compose} />;
@@ -162,7 +166,7 @@ export default function App() {
     if (!isAuthenticated) {
       // Returning from Google (?code=) or ?login goes straight to the sign-in form; otherwise the landing page.
       const params = new URLSearchParams(window.location.search);
-      const wantsLogin = params.has('code') || params.has('error') || params.has('login');
+      const wantsLogin = params.has('code') || params.has('error') || params.has('login') || sharedPostId() !== null;
       const openLogin = () => navigate(`${pageHref('')}?login`);
       return (
         <>

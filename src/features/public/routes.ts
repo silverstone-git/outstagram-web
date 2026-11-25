@@ -12,6 +12,15 @@ export function currentPublicPage(): PublicPage | null {
 
 export const pageHref = (p: PublicPage | '') => `${base}/${p ? `${p}/` : ''}`;
 
+// Share links: <base>/p/?id=<post id> and <base>/u/?name=<username>. Real folders (vite.config.ts copies the
+// app shell into them), so no SPA fallback is needed; the Android app opens the same URLs (App Links).
+function linkParam(folder: string, key: string): string | null {
+  const rest = window.location.pathname.slice(base.length).replace(/^\/|\/$/g, '');
+  return rest === folder ? new URLSearchParams(window.location.search).get(key) : null;
+}
+export const sharedPostId = () => linkParam('p', 'id');
+export const postHref = (id: string) => `${window.location.origin}${base}/p/?id=${encodeURIComponent(id)}`;
+
 // Business contact details shown on the policy pages and footer.
 export const CONTACT = {
   brand: 'Outstagram',
