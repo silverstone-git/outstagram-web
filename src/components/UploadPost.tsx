@@ -119,7 +119,7 @@ function UploadPost({ user, initialCategory }: UploadPostProps) {
         return;
       }
       setStatus('Compressing…');
-      const files = await Promise.all(selectedFiles.map((f) => compressImage(f, Math.min(limit, 200_000))));
+      const files = await Promise.all(selectedFiles.map((f) => compressImage(f, limit)));
       const saved = selectedFiles.reduce((a, f) => a + f.size, 0) - files.reduce((a, f) => a + f.size, 0);
       const big = files.find((f) => f.size > limit);
       if (big) {

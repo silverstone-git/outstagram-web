@@ -543,6 +543,16 @@ export class OutstagramAPI {
         throw new UploadTooLargeError(body?.message || 'File too large');
     };
 
+    // One file per request: a post's photos together can pass Cloud Run's 32 MB request cap (20 MB each on Contributor).
+    if (files.length > 1) {
+        const out: MediaUrl[] = [];
+        for (const f of files) {
+            const one = await this.uploadImages([f]);
+            if (!one) return null;
+            out.push(...one);
+        }
+        return out;
+    }
     if (files.length === 1) {
         formData.append('file', files[0]);
         const response = await fetchWithHandling(`${API_BASE_URL}/media-upload`, {
