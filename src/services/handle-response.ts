@@ -20,7 +20,15 @@ export async function handleResponse<T>(response: Response): Promise<T | null> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(errorText || 'Request failed');
+    // FastAPI: {"detail": "..."} or {"detail": {"code", "message"}} (e.g. 403 email_unverified)
+    let message = errorText || 'Request failed';
+    try {
+      const d = JSON.parse(errorText)?.detail;
+      if (typeof d === 'string') message = d;
+      else if (d?.message) message = d.message;
+      if (d?.code === 'email_unverified') window.dispatchEvent(new CustomEvent('emailUnverified'));
+    } catch { /* not JSON */ }
+    throw new Error(message);
   }
 
   return response.json() as Promise<T>;

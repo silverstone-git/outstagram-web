@@ -147,6 +147,15 @@ export interface MyStats {
 export interface TrendingTag { tag: string; posts: number }
 
 /** Upload refused for size; the paywall has been opened if upgrading would help. */
+/** GET /me: the account's email and whether it's confirmed (posting and the AI tutor need it). */
+export interface Me {
+  user_id: number;
+  username: string;
+  email: string;
+  email_verified: boolean;
+  verification_required?: boolean;
+}
+
 export class UploadTooLargeError extends Error {}
 
 // API service class
@@ -339,6 +348,64 @@ export class OutstagramAPI {
     const data = (await r.json()) as AuthResponse;
     this.setAuthToken(data.access_token);
     return data;
+  }
+
+  // ---- Emailed 6-digit codes: sign in, forgot password, confirm email (outsie asks Supabase to send them) ----
+
+  private static async json<T>(path: string, body: unknown, auth = false): Promise<T | null> {
+    const r = await fetch(`${API_BASE_URL}${path}`, {
+      method: 'POST',
+      headers: auth ? this.getAuthHeaders() : { 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    if (!r.ok) {
+      let detail = `Request failed (${r.status})`;
+      try {
+        const j = await r.json();
+        detail = typeof j.detail === 'string' ? j.detail : (j.detail?.message ?? (Array.isArray(j.detail) ? j.detail[0]?.msg : detail));
+      } catch { /* not JSON */ }
+      throw new Error(detail);
+    }
+    return r.status === 204 ? null : ((await r.json()) as T);
+  }
+
+  static async emailCodeStart(email: string): Promise<void> {
+    await this.json('/auth/email/start', { email: email.trim().toLowerCase() });
+  }
+
+  static async emailCodeSignIn(email: string, code: string): Promise<AuthResponse> {
+    const data = (await this.json<AuthResponse>('/auth/email/verify', { email: email.trim().toLowerCase(), code }))!;
+    this.setAuthToken(data.access_token);
+    return data;
+  }
+
+  static async forgotPassword(email: string): Promise<void> {
+    await this.json('/auth/password/forgot', { email: email.trim().toLowerCase() });
+  }
+
+  static async resetPassword(email: string, code: string, newPassword: string): Promise<AuthResponse> {
+    const data = (await this.json<AuthResponse>('/auth/password/reset', {
+      email: email.trim().toLowerCase(), code, new_password: newPassword,
+    }))!;
+    this.setAuthToken(data.access_token);
+    return data;
+  }
+
+  static async getMe(): Promise<Me> {
+    const r = await fetchWithHandling(`${API_BASE_URL}/me`, { headers: this.getAuthHeaders() });
+    return (await handleResponse<Me>(r))!;
+  }
+
+  static async sendVerifyCode(): Promise<void> {
+    const r = await fetchWithHandling(`${API_BASE_URL}/me/email/verify/start`, { method: 'POST', headers: this.getAuthHeaders() });
+    await handleResponse(r);
+  }
+
+  static async verifyEmail(code: string): Promise<Me> {
+    const r = await fetchWithHandling(`${API_BASE_URL}/me/email/verify`, {
+      method: 'POST', headers: this.getAuthHeaders(), body: JSON.stringify({ code }),
+    });
+    return (await handleResponse<Me>(r))!;
   }
 
   static async register(userData: RegisterData): Promise<RegisterResponse | null> {

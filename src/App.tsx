@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Home, User, Plus, Search, GraduationCap } from 'lucide-react';
 import Cookies from 'js-cookie';
 import { Login } from './components/Login';
+import { VerifyEmailBanner } from './components/VerifyEmailBanner';
 import { Dashboard } from './components/Dashboard';
 import { Feed } from './components/Feed';
 import { Profile } from './components/Profile';
@@ -177,6 +178,7 @@ export default function App() {
       <div className="min-h-screen bg-background text-foreground">
         {/* Main Content */}
         <div className={immersive ? '' : 'pb-20'}>
+          {!immersive && <VerifyEmailBanner />}
           {renderScreen()}
         </div>
 
