@@ -154,7 +154,8 @@ export default function App() {
         case 'exams':
           return <ExamsTab onImmersive={onImmersive} onShareResult={shareExamResult} />;
         case 'profile':
-          return <Profile user={currentUser} onLogout={handleLogout} onNavigateToPost={handleNavigateToPost} />;
+          return <Profile user={currentUser} onLogout={handleLogout} onNavigateToPost={handleNavigateToPost}
+            onUserUpdated={(u) => { setCurrentUser(u); localStorage.setItem('outstagram_user', JSON.stringify(u)); }} />;
         case 'upload':
           return <UploadPost key={composeCategory ?? 'default'} user={currentUser} initialCategory={composeCategory} />;
         case 'postView':

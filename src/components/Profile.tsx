@@ -11,14 +11,18 @@ import type { User as ApiUser, Post, MyStats } from '../services/api';
 import { categoryKey } from '../types/post';
 import { ThemeToggle } from '../lib/theme';
 import { openPaywall } from '../features/billing/billing';
+import { EditProfileDialog } from './EditProfile';
 
 interface ProfileProps {
   user: ApiUser;
   onLogout: () => void;
   onNavigateToPost: (postId: string) => void;
+  /** after a name/bio edit, so App (and localStorage) hold the new values */
+  onUserUpdated?: (user: ApiUser) => void;
 }
 
-function Profile({ user, onLogout, onNavigateToPost }: ProfileProps) {
+function Profile({ user, onLogout, onNavigateToPost, onUserUpdated }: ProfileProps) {
+  const [editing, setEditing] = useState(false);
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState<MyStats | null>(null);
@@ -120,9 +124,14 @@ function Profile({ user, onLogout, onNavigateToPost }: ProfileProps) {
             <p className="text-muted-foreground">@{user.username}</p>
           </div>
 
-          <p className="text-card-foreground max-w-xs mx-auto">
-            {user.bio}
-          </p>
+          {user.bio && (
+            <p className="text-card-foreground max-w-xs mx-auto whitespace-pre-line break-words">
+              {user.bio}
+            </p>
+          )}
+          <Button variant="outline" size="sm" onClick={() => setEditing(true)}>Edit profile</Button>
+          <EditProfileDialog user={user} open={editing} onOpenChange={setEditing}
+            onSaved={(u) => onUserUpdated?.(u)} />
         </div>
 
         {/* Stats */}

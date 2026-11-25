@@ -9,6 +9,7 @@ import { OutstagramAPI } from '../services/api';
 import type { User as ApiUser, Post, MyStats, TrendingTag } from '../services/api';
 import { categoryKey, type PostCategory } from '../types/post';
 import { ThemeToggle } from '../lib/theme';
+import { RequestsButton } from './Requests';
 
 interface DashboardProps {
   user: ApiUser;
@@ -55,6 +56,7 @@ function Dashboard({ user, onNavigateToPost, onOpenExams, onCompose }: Dashboard
             <p className="text-muted-foreground">Your study dashboard</p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
+            <RequestsButton />
             <ThemeToggle />
             <Avatar className="w-12 h-12 ring-2 ring-primary">
               <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} />

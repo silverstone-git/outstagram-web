@@ -9,6 +9,7 @@ import { OutstagramAPI } from '../services/api';
 import type { Post } from '../services/api';
 import { categoryKey } from '../types/post';
 import { openProfile } from '../lib/nav';
+import { UserSearch } from './UserSearch';
 
 // Types
 interface CategoryOption {
@@ -354,6 +355,7 @@ function Feed() {
       <header className="sticky top-0 bg-card/80 backdrop-blur-md border-b border-border p-4 z-10">
         <div className="max-w-md mx-auto space-y-3">
           <h1 className="text-xl font-bold text-primary">✨ Your Feed</h1>
+          <UserSearch />
           <CategoryFilter 
             categories={CATEGORY_OPTIONS}
             selectedCategory={selectedCategory}

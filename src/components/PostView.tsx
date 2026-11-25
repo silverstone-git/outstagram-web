@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Heart, MessageCircle, ArrowLeft } from 'lucide-react';
+import { Heart, MessageCircle, ArrowLeft, Trash2 } from 'lucide-react';
 import { OutstagramAPI } from '../services/api';
 import type { Post, Comment, Like } from '../services/api';
 import { Card, CardContent } from './ui/card';
@@ -9,6 +9,15 @@ import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from './ui/carousel';
 import { toast } from 'sonner';
 import { openProfile } from '../lib/nav';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from './ui/alert-dialog';
+
+/** The signed-in user's id (App keeps the user in localStorage). */
+const myUserId = (): number | null => {
+  try { return JSON.parse(localStorage.getItem('outstagram_user') ?? 'null')?.user_id ?? null; } catch { return null; }
+};
 
 interface PostViewProps {
   postId: string;
@@ -34,6 +43,25 @@ export function PostView({ postId, onBack }: PostViewProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLikedOptimistic, setIsLikedOptimistic] = useState(false);
+  const [toDelete, setToDelete] = useState<Comment | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const me = myUserId();
+  const canDelete = (c: Comment) => me != null && (c.author_user_id === me || post?.author_user_id === me);
+
+  const deleteComment = async () => {
+    if (!toDelete || !post) return;
+    setDeleting(true);
+    try {
+      await OutstagramAPI.deleteComment(post.post_id, toDelete.comment_id);
+      setComments((cs) => cs.filter((c) => c.comment_id !== toDelete.comment_id));
+      toast.success('Comment deleted');
+      setToDelete(null);
+    } catch (e) {
+      toast.error((e as Error).message || 'Could not delete the comment');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   useEffect(() => {
     const fetchPostData = async () => {
@@ -144,14 +172,22 @@ export function PostView({ postId, onBack }: PostViewProps) {
           {comments.length > 0 ? (
             <ul className="space-y-2">
               {comments.map(comment => (
-                <li key={comment.comment_id} className="flex items-start space-x-2">
-                  <Avatar className="w-8 h-8">
-                    <AvatarImage src={comment.author_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.author_user_id}`} />
-                    <AvatarFallback>{comment.author_user_id}</AvatarFallback>
+                <li key={comment.comment_id} className="group flex items-start gap-2">
+                  <Avatar className="w-8 h-8 shrink-0">
+                    <AvatarImage src={comment.author_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.author ?? comment.author_user_id}`} />
+                    <AvatarFallback>{(comment.author ?? '?').charAt(0).toUpperCase()}</AvatarFallback>
                   </Avatar>
-                  <p>
-                    <span className="font-semibold">{comment.author_user_id}</span> {comment.content}
+                  <p className="min-w-0 flex-1 break-words">
+                    {comment.author ? (
+                      <button type="button" onClick={() => openProfile(comment.author!)} className="font-semibold hover:underline">{comment.author}</button>
+                    ) : <span className="font-semibold">Someone</span>} {comment.content}
                   </p>
+                  {canDelete(comment) && (
+                    <Button variant="ghost" size="icon" aria-label="Delete comment" onClick={() => setToDelete(comment)}
+                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </li>
               ))}
             </ul>
@@ -159,6 +195,23 @@ export function PostView({ postId, onBack }: PostViewProps) {
             <p className="text-muted-foreground">No comments yet.</p>
           )}
         </div>
+        <AlertDialog open={toDelete !== null} onOpenChange={(o) => { if (!o && !deleting) setToDelete(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this comment?</AlertDialogTitle>
+              <AlertDialogDescription className="break-words">
+                “{(toDelete?.content ?? '').slice(0, 120)}{(toDelete?.content.length ?? 0) > 120 ? '…' : ''}” will be removed for everyone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction disabled={deleting} onClick={(e) => { e.preventDefault(); deleteComment(); }}
+                className="bg-destructive text-white hover:bg-destructive/90">
+                {deleting ? 'Deleting…' : 'Delete'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
