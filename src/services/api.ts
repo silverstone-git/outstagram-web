@@ -54,6 +54,7 @@ export interface MediaUrl {
 export interface PostMediaUrl {
   post_id: string;
   url: string;
+  media_type?: 'image' | 'video';
 }
 
 export interface CreatePostData {
