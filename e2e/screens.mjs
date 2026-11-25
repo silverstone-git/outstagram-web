@@ -99,7 +99,7 @@ const screens = [
     await nav('Home')(p); await p.getByText('GATE Physics mock #4').first().click();
     await p.getByText('Griffiths, then Sakurai').waitFor();
     if (await p.getByRole('button', { name: 'Delete comment' }).count() !== 2) throw new Error('post author should be able to delete both comments');
-    await p.getByRole('button', { name: 'Delete comment' }).last().click({ force: true });
+    await p.getByRole('button', { name: 'Delete comment' }).last().dispatchEvent('click');
     await p.getByText('Delete this comment?').waitFor(); await p.waitForTimeout(300);
   }],
   ['paywall', true, async (p) => { await nav('Exams')(p); await p.getByRole('button', { name: /AI prompts left this hour/ }).click(); await p.getByText('Get Pro · ₹99').waitFor(); await p.waitForTimeout(400); }],
