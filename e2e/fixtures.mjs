@@ -72,6 +72,21 @@ export const billing = { plan: 'free', valid_until: null, limits: freeLimits, fr
   payments_enabled: true, test_mode: true, price: { amount: 9900, currency: 'INR', days: 30 } };
 
 // [method, regex on pathname+search, body or (url) => body]; a body {__raw, type} is sent verbatim.
+const followRequests = [
+  { request_id: 41, requester_user_id: 2, requested_user_id: 1, datetime_requested: ago(2), status: 'pending', requester_username: 'meera', requester_avatar_url: null },
+  { request_id: 42, requester_user_id: 4, requested_user_id: 1, datetime_requested: ago(30), status: 'pending', requester_username: 'rohan_physics_2027', requester_avatar_url: null },
+];
+const comments = [
+  { comment_id: 7, post_id: 'p1', content: 'Congrats! Which book did you use for QM?', author_user_id: 2, author: 'meera', author_avatar_url: null, datetime_commented: ago(2) },
+  { comment_id: 8, post_id: 'p1', content: 'Griffiths, then Sakurai for the harder bits.', author_user_id: 1, author: 'aryan', author_avatar_url: null, datetime_commented: ago(1) },
+];
+const searchResults = [
+  { user_id: 2, username: 'meera', fullname: 'Meera Iyer', bio: null, avatar_url: null },
+  { user_id: 5, username: 'meghna.s', fullname: 'Meghna Sharma', bio: 'CSIR NET 2026', avatar_url: null },
+];
+const me = { user_id: 1, username: user.username, fullname: user.fullname, bio: user.bio, email: 'aryan@example.com',
+  email_verified: true, verification_required: true, avatar_url: null };
+
 export const routes = [
   ['POST', /^\/exam-attempts\/[^/]+\/chat\/stream/, streamReply],
   ['GET', /^\/me\/stats/, stats],
@@ -104,10 +119,14 @@ export const routes = [
   ['GET', /^\/dashboard\/\d+/, posts.filter((p) => p.author_user_id === 1)],
   ['GET', /^\/feed/, posts],
   ['GET', /^\/users\/[^/]+\/posts\/\d+/, posts.filter((p) => p.author_user_id === 1)],
+  ['GET', /^\/users\/search\?/, searchResults],
+  ['GET', /^\/me$/, me],
+  ['PUT', /^\/me$/, me],
   ['GET', /^\/users\/[^/]+$/, profile],
-  ['GET', /^\/follow-requests/, []],
+  ['GET', /^\/follow-requests/, followRequests],
   ['GET', /^\/posts\/p\d$/, posts[0]],
-  ['GET', /^\/posts\/[^/]+\/(likes|comments)\/\d+/, []],
+  ['GET', /^\/posts\/[^/]+\/comments\/\d+/, comments],
+  ['GET', /^\/posts\/[^/]+\/likes\/\d+/, []],
   ['GET', /^\/pariksha(\?|$)/, []],
   ['GET', /^\/api\/question_bank\/groups/, ['pg_physics']],
 ];

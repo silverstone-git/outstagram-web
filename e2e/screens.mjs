@@ -91,6 +91,17 @@ const screens = [
     await p.locator('.md .katex-display').first().click({ button: 'right' });
     await p.getByText('Equation saved to favourites').waitFor();
   }],
+  ['requests', true, async (p) => { await nav('Home')(p); await p.getByRole('button', { name: /^Follow requests/ }).click(); await p.getByText('@meera').waitFor(); await p.waitForTimeout(300); }],
+  ['search', true, async (p) => { await nav('Explore')(p); await p.getByRole('searchbox', { name: 'Search people' }).fill('me'); await p.getByText('@meghna.s').waitFor(); }],
+  ['edit-profile', true, async (p) => { await nav('Profile')(p); await p.getByRole('button', { name: 'Edit profile' }).click(); await p.getByLabel('Bio').waitFor(); await p.waitForTimeout(300); }],
+  ['post-comments', true, async (p) => { await nav('Home')(p); await p.getByText('GATE Physics mock #4').first().click(); await p.getByText('Griffiths, then Sakurai').waitFor(); }],
+  ['delete-comment', true, async (p) => {
+    await nav('Home')(p); await p.getByText('GATE Physics mock #4').first().click();
+    await p.getByText('Griffiths, then Sakurai').waitFor();
+    if (await p.getByRole('button', { name: 'Delete comment' }).count() !== 2) throw new Error('post author should be able to delete both comments');
+    await p.getByRole('button', { name: 'Delete comment' }).last().dispatchEvent('click');
+    await p.getByText('Delete this comment?').waitFor(); await p.waitForTimeout(300);
+  }],
   ['paywall', true, async (p) => { await nav('Exams')(p); await p.getByRole('button', { name: /AI prompts left this hour/ }).click(); await p.getByText('Get Pro · ₹99').waitFor(); await p.waitForTimeout(400); }],
 ];
 
@@ -138,5 +149,5 @@ server.close();
 report.unmocked = [...new Set(report.unmocked)];
 fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 2));
 console.log(JSON.stringify({ shots: report.shots.length, consoleErrors: report.consoleErrors.length,
-  pageErrors: report.pageErrors.length, overflow: report.overflow, unmocked: report.unmocked }, null, 2));
+  pageErrors: report.pageErrors, overflow: report.overflow, unmocked: report.unmocked }, null, 2));
 if (report.pageErrors.length) process.exitCode = 1;

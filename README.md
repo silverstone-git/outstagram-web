@@ -110,6 +110,14 @@ We welcome contributions to Froutstagram! To ensure a smooth development process
 - **Theme**: `src/lib/theme.tsx` toggles `.dark` on `<html>` (dark is the default; light palette in `:root`), remembered in `localStorage` and applied before first paint by a script in `index.html`.
 - **Numbers**: Dashboard and Profile read `GET /me/stats` and `GET /trending`; nothing is hard-coded.
 
+## Social (2026-11-25)
+
+- **Follow requests** (`src/components/Requests.tsx`): bell with a count in the Home header; Approve or Decline (`POST /request-approve|request-reject/{id}`). The count refreshes when the tab regains focus (no push on the web).
+- **Edit profile** (`src/components/EditProfile.tsx`): name (1–60) and bio (≤ 160) via `PUT /me`; the new values are stored in `localStorage` so the header updates without signing in again.
+- **Delete comments** (`src/components/PostView.tsx`): the comment's author and the post's author see a trash button (`DELETE /posts/{id}/comments/{comment_id}`). Comments show the author's username, linked to their profile.
+- **People search** (`src/components/UserSearch.tsx`): top of Explore, `GET /users/search` with a 250 ms debounce; Escape clears.
+- Profiles, follow/unfollow and follower lists: `src/components/UserProfile.tsx`.
+
 ## Public pages
 
 Signed-out visitors see a landing page (`src/features/public/`). `/pricing`, `/terms`, `/privacy`, `/refunds` and `/contact` are real URLs on any static host: the build copies `index.html` into each folder and the app renders the page from the pathname. Prices come from outsie's public `GET /billing/plans`; contact details live in `src/features/public/routes.ts`.

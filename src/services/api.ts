@@ -143,6 +143,16 @@ export interface FollowRequest {
   datetime_requested: string;
   status: string;
   requester_username: string;
+  requester_avatar_url?: string | null;
+}
+
+/** A row of GET /users/search. */
+export interface UserSearchResult {
+  user_id: number;
+  username: string;
+  fullname: string;
+  bio: string | null;
+  avatar_url: string | null;
 }
 
 export interface MediaUploadResponse {
@@ -170,6 +180,8 @@ export interface Me {
   user_id: number;
   username: string;
   email: string;
+  fullname?: string;
+  bio?: string | null;
   email_verified: boolean;
   verification_required?: boolean;
   avatar_url?: string | null;
@@ -805,5 +817,37 @@ export class OutstagramAPI {
     });
 
     return handleResponse<{ user1_id: number; user2_id: number; being_followed: number; datetime_friended: string }>(response);
+  }
+
+  /** Decline a follow request addressed to you (they can ask again later). */
+  static async rejectFollowRequest(requestId: number): Promise<void> {
+    const r = await fetchWithHandling(`${API_BASE_URL}/request-reject/${requestId}`, {
+      method: 'POST', headers: this.getAuthHeaders(),
+    });
+    await handleResponse(r);
+  }
+
+  /** Edit your name (1–60) and/or bio (≤ 160; "" clears it). Returns the GET /me body. */
+  static async updateProfile(changes: { fullname?: string; bio?: string }): Promise<Me> {
+    const r = await fetchWithHandling(`${API_BASE_URL}/me`, {
+      method: 'PUT', headers: this.getAuthHeaders(), body: JSON.stringify(changes),
+    });
+    return (await handleResponse<Me>(r))!;
+  }
+
+  /** Delete a comment: allowed for its author and for the post's author. */
+  static async deleteComment(postId: string, commentId: number): Promise<void> {
+    const r = await fetchWithHandling(`${API_BASE_URL}/posts/${encodeURIComponent(postId)}/comments/${commentId}`, {
+      method: 'DELETE', headers: this.getAuthHeaders(),
+    });
+    await handleResponse(r);
+  }
+
+  /** Username prefix or name substring; never includes yourself. */
+  static async searchUsers(q: string, limit = 20): Promise<UserSearchResult[]> {
+    const r = await fetchWithHandling(`${API_BASE_URL}/users/search?q=${encodeURIComponent(q)}&limit=${limit}`, {
+      headers: this.getAuthHeaders(),
+    });
+    return (await handleResponse<UserSearchResult[]>(r)) ?? [];
   }
 }
