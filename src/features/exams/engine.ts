@@ -33,7 +33,7 @@ export const formatTime = (seconds: number): string => {
 export const resolveImagePath = (path: string | undefined): string => {
   if (!path) return '';
   if (/^(https?:|data:)/.test(path)) return path;
-  const publicUrl = import.meta.env.VITE_API_R2_PUBLIC_ENDPOINT || 'https://pub-682f1a94c94443278f61ec7ca3dadaec.r2.dev';
+  const publicUrl = import.meta.env.VITE_API_R2_PUBLIC_ENDPOINT || 'https://outsiebucket.aryan.cfd';
   return `${publicUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
 };
 
