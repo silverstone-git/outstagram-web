@@ -18,7 +18,9 @@ import { Paywall } from './features/billing/Paywall';
 import { Landing } from './features/public/Landing';
 import { PolicyPage } from './features/public/PolicyPages';
 import { PublicLayout } from './features/public/PublicLayout';
-import { currentPublicPage, pageHref, sharedPostId } from './features/public/routes';
+import { currentPublicPage, pageHref, sharedPostId, sharedProfileName } from './features/public/routes';
+import { UserProfileView } from './components/UserProfile';
+import { onOpenProfile } from './lib/nav';
 import type { PostCategory } from './types/post';
 import { OutstagramAPI } from './services/api';
 import { BrandMark } from './components/Brand';
@@ -33,11 +35,15 @@ const LoadingSpinner = () => (
   </div>
 );
 
-type Screen = 'dashboard' | 'feed' | 'exams' | 'profile' | 'upload' | 'postView';
+type Screen = 'dashboard' | 'feed' | 'exams' | 'profile' | 'upload' | 'postView' | 'user';
 
 export default function App() {
   // a shared link (/p/?id=...) opens that post, after sign-in if needed
-  const [currentScreen, setCurrentScreen] = useState<Screen>(() => (sharedPostId() ? 'postView' : 'dashboard'));
+  const [currentScreen, setCurrentScreen] = useState<Screen>(() =>
+    sharedPostId() ? 'postView' : sharedProfileName() ? 'user' : 'dashboard');
+  // someone else's profile (`/u/?name=…` links, post authors, follower lists)
+  const [selectedUsername, setSelectedUsername] = useState<string | null>(() => sharedProfileName());
+  const [backTo, setBackTo] = useState<Screen>('dashboard');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<ApiUser | null>(null);
@@ -104,6 +110,20 @@ export default function App() {
     setCurrentScreen('postView');
   };
 
+  useEffect(() => onOpenProfile((name) => {
+    if (currentUser && name === currentUser.username) {
+      setCurrentScreen('profile');
+      return;
+    }
+    setBackTo((s) => (currentScreen === 'user' ? s : currentScreen));
+    setSelectedUsername(name);
+    setCurrentScreen('user');
+  }), [currentUser, currentScreen]);
+
+  const leaveSharedLink = () => {
+    if (sharedPostId() || sharedProfileName()) window.history.replaceState(null, '', pageHref(''));
+  };
+
   const AppContent = () => {
     // Lives inside AppContent: App re-creates AppContent on every App state change, so state kept in
     // App would remount the exam mid-attempt.
@@ -139,9 +159,12 @@ export default function App() {
           return <UploadPost key={composeCategory ?? 'default'} user={currentUser} initialCategory={composeCategory} />;
         case 'postView':
           return <PostView postId={selectedPostId!} onBack={() => {
-            if (sharedPostId()) window.history.replaceState(null, '', pageHref(''));
-            setCurrentScreen('dashboard');
+            leaveSharedLink();
+            setCurrentScreen(selectedUsername && backTo === 'user' ? 'user' : 'dashboard');
           }} />;
+        case 'user':
+          return <UserProfileView username={selectedUsername!} onNavigateToPost={(id) => { setBackTo('user'); handleNavigateToPost(id); }}
+            onBack={() => { leaveSharedLink(); setCurrentScreen(backTo === 'user' ? 'dashboard' : backTo); }} />;
         default:
           return <Dashboard user={currentUser} onNavigateToPost={handleNavigateToPost}
             onOpenExams={() => setCurrentScreen('exams')} onCompose={compose} />;
@@ -166,7 +189,8 @@ export default function App() {
     if (!isAuthenticated) {
       // Returning from Google (?code=) or ?login goes straight to the sign-in form; otherwise the landing page.
       const params = new URLSearchParams(window.location.search);
-      const wantsLogin = params.has('code') || params.has('error') || params.has('login') || sharedPostId() !== null;
+      const wantsLogin = params.has('code') || params.has('error') || params.has('login') || sharedPostId() !== null
+        || sharedProfileName() !== null;
       const openLogin = () => navigate(`${pageHref('')}?login`);
       return (
         <>

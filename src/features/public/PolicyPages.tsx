@@ -36,7 +36,7 @@ function Terms() {
       <h2>4. AI tutor and generated content</h2>
       <p>The AI tutor and AI-generated questions are learning aids. They can be wrong. Check important answers against your textbooks and teachers. Do not use the Service to cheat in any exam or assessment. Fair-use limits on AI messages apply per plan and are shown in the app.</p>
       <h2>5. Paid plans</h2>
-      <p>Some features need a paid Pro pass. Prices are shown on the <a href={pageHref('pricing')}>pricing page</a> and before you pay. A Pro pass is a one-time payment for a fixed number of days and does not renew automatically. Payments are processed by Razorpay; we never see or store your card or UPI PIN. Refunds are covered by our <a href={pageHref('refunds')}>Refund &amp; Cancellation Policy</a>.</p>
+      <p>Some features need a paid pass (Pro or Contributor). Prices are shown on the <a href={pageHref('pricing')}>pricing page</a> and before you pay. A pass is a one-time payment for a fixed number of days and does not renew automatically. Payments are processed by Razorpay; we never see or store your card or UPI PIN. Refunds are covered by our <a href={pageHref('refunds')}>Refund &amp; Cancellation Policy</a>.</p>
       <h2>6. Acceptable use</h2>
       <p>Do not try to break, overload, scrape or reverse-engineer the Service, get around usage limits, access other people's accounts, or use it for spam or anything unlawful.</p>
       <h2>7. Our content</h2>
@@ -104,10 +104,10 @@ function Privacy() {
 function Refunds() {
   return (
     <Doc title="Refund & Cancellation Policy">
-      <p>Outstagram is free to use. The only paid product is the <b>Pro pass</b>: a one-time payment for a fixed number of days (see <a href={pageHref('pricing')}>pricing</a>). It is a digital service delivered instantly to your account; nothing is shipped.</p>
+      <p>Outstagram is free to use. The only paid products are the <b>Pro</b> and <b>Contributor</b> passes: one-time payments for a fixed number of days (see <a href={pageHref('pricing')}>pricing</a>). It is a digital service delivered instantly to your account; nothing is shipped.</p>
       <h2>Cancellation</h2>
       <ul>
-        <li>The Pro pass does <b>not</b> renew automatically, so there is no subscription to cancel. When it ends your account returns to the Free plan and nothing more is charged.</li>
+        <li>Passes do <b>not</b> renew automatically, so there is no subscription to cancel. When it ends your account returns to the Free plan and nothing more is charged.</li>
         <li>You can stop using Pro at any time; see below for when a refund applies.</li>
       </ul>
       <h2>Refunds</h2>
@@ -150,7 +150,7 @@ function Pricing({ onStart }: { onStart: () => void }) {
   return (
     <section className="px-4 py-12">
       <h1 className="text-center text-3xl font-bold">Pricing</h1>
-      <p className="mt-2 mb-10 text-center text-muted-foreground">Free to start. One-time Pro pass when you need more; never auto-renews.</p>
+      <p className="mt-2 mb-10 text-center text-muted-foreground">Free to start. One-time Pro or Contributor pass when you need more; never auto-renews.</p>
       <PricingCards onStart={onStart} />
     </section>
   );

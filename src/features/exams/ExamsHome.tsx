@@ -3,7 +3,7 @@ import { BookOpenCheck, ChevronRight, Clock, History, Loader2, MessagesSquare, S
 import { openPaywall } from '../billing/billing';
 import { SavedEquations, TutorHistory } from './TutorLibrary';
 import { PRESETS, SUBJECTS } from './engine';
-import { ExamAPI, type AttemptSummary, type Quota } from './examApi';
+import { ExamAPI, quotaOut, quotaShort, type AttemptSummary, type Quota } from './examApi';
 import type { ServerExam } from './types';
 
 export type StartRequest =
@@ -32,10 +32,10 @@ export function ExamsHome({ busy, quota, onStart, onOpenAttempt }: {
           <p className="text-sm text-muted-foreground">Practice, review, then ask the AI tutor about any question.</p>
         </div>
         {quota && (
-          <button type="button" onClick={() => openPaywall({ code: quota.remaining <= 0 ? 'ai_quota' : 'manual' })}
+          <button type="button" onClick={() => openPaywall({ code: quotaOut(quota) ? 'ai_quota' : 'manual' })}
             className="shrink-0 inline-flex items-center gap-1 rounded-full bg-secondary px-2.5 py-1 text-xs hover:bg-secondary/70"
-            title="AI prompts left this hour" aria-label={`${quota.remaining} of ${quota.limit} AI prompts left this hour. Upgrade`}>
-            <Sparkles className="w-3.5 h-3.5 text-primary" />{quota.remaining}/{quota.limit}
+            title="AI prompts left this hour" aria-label={quota.unlimited ? 'Unlimited AI prompts' : `${quota.remaining} of ${quota.limit} AI prompts left this hour. Upgrade`}>
+            <Sparkles className="w-3.5 h-3.5 text-primary" />{quotaShort(quota)}
           </button>
         )}
       </header>

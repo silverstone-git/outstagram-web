@@ -19,6 +19,8 @@ function linkParam(folder: string, key: string): string | null {
   return rest === folder ? new URLSearchParams(window.location.search).get(key) : null;
 }
 export const sharedPostId = () => linkParam('p', 'id');
+export const sharedProfileName = () => linkParam('u', 'name');
+export const profileHref = (name: string) => `${window.location.origin}${base}/u/?name=${encodeURIComponent(name)}`;
 export const postHref = (id: string) => `${window.location.origin}${base}/p/?id=${encodeURIComponent(id)}`;
 
 // Business contact details shown on the policy pages and footer.

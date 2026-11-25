@@ -1,17 +1,28 @@
 import { API_BASE_URL, OutstagramAPI } from '../../services/api';
 import { fetchWithHandling, handleResponse } from '../../services/handle-response';
 
-export type PaywallCode = 'ai_quota' | 'tutor_threads' | 'tutor_storage' | 'media_too_large' | 'manual';
-export interface PaywallDetail { code: PaywallCode; message?: string; [k: string]: unknown }
+export type PaywallCode = 'ai_quota' | 'tutor_threads' | 'tutor_storage' | 'media_too_large' | 'video_not_allowed'
+  | 'posts_limit' | 'manual';
+/** `needs`: the plan that lifts the limit (highlighted in the sheet). */
+export interface PaywallDetail { code: PaywallCode; message?: string; needs?: PlanId; [k: string]: unknown }
 
-export interface Limits { ai_prompts_per_hour: number; tutor_threads: number; tutor_bytes: number; media_bytes: number }
+export type PlanId = 'free' | 'pro' | 'contributor';
+export const PLAN_RANK: Record<PlanId, number> = { free: 0, pro: 1, contributor: 2 };
+/** null = unlimited; video_bytes 0 = no videos (lib/plans.py on the server). */
+export interface Limits {
+  ai_prompts_per_hour: number | null; tutor_threads: number | null; tutor_bytes: number | null; media_bytes: number;
+  video_bytes?: number | null; media_per_post?: number | null; posts?: number | null;
+}
+export interface PlanInfo { id: PlanId; name: string; price: number; currency: string; days: number | null; limits: Limits }
 export interface BillingStatus {
-  plan: 'free' | 'pro';
+  plan: PlanId;
+  plans?: PlanInfo[];
+  posts?: number;
   valid_until: string | null;
   limits: Limits;
   free_limits: Limits;
   pro_limits: Limits;
-  usage: { ai: { limit: number; used: number; remaining: number; resets_at: string | null }; tutor_threads: number; tutor_bytes: number };
+  usage: { ai: { limit: number | null; used: number; remaining: number | null; unlimited?: boolean; resets_at: string | null }; tutor_threads: number; tutor_bytes: number };
   payments_enabled: boolean;
   test_mode: boolean;
   price: { amount: number; currency: string; days: number };
@@ -27,9 +38,21 @@ export function openPaywall(detail: PaywallDetail) {
   window.dispatchEvent(new CustomEvent<PaywallDetail>('paywall', { detail }));
 }
 
-/** If `r` is a paywall response (402/413/429 with detail.upgrade), open the sheet and return its detail. */
+/** The plans in the status (older servers: free + pro from the old fields). */
+export function plansOf(s: BillingStatus): PlanInfo[] {
+  if (s.plans?.length) return s.plans;
+  return [
+    { id: 'free', name: 'Free', price: 0, currency: s.price.currency, days: null, limits: s.free_limits },
+    { id: 'pro', name: 'Outstagram Pro', price: s.price.amount, currency: s.price.currency, days: s.price.days, limits: s.pro_limits },
+  ];
+}
+
+/** "Pro", "Contributor". */
+export const shortName = (p: PlanInfo) => (p.id === 'free' ? 'Free' : p.name.split(' ').pop()!);
+
+/** If `r` is a paywall response (402/403/413/429 with detail.upgrade), open the sheet and return its detail. */
 export async function paywallFrom(r: Response): Promise<PaywallDetail | null> {
-  if (![402, 413, 429].includes(r.status)) return null;
+  if (![402, 403, 413, 429].includes(r.status)) return null;
   const body = await r.clone().json().catch(() => null);
   const d = body?.detail;
   if (d && typeof d === 'object' && d.upgrade) {
@@ -44,11 +67,12 @@ export const BillingAPI = {
     const r = await fetchWithHandling(`${API_BASE_URL}/billing/status`, { headers: OutstagramAPI.getAuthHeaders() });
     return handleResponse<BillingStatus>(r);
   },
-  async order(reason: string): Promise<Order> {
+  async order(reason: string, plan: Exclude<PlanId, 'free'> = 'pro'): Promise<Order> {
     const r = await fetchWithHandling(`${API_BASE_URL}/billing/razorpay/order`, {
-      method: 'POST', headers: OutstagramAPI.getAuthHeaders(), body: JSON.stringify({ reason }),
+      method: 'POST', headers: OutstagramAPI.getAuthHeaders(), body: JSON.stringify({ reason, plan }),
     });
     if (r.status === 503) throw new Error('Payments are not set up on this server yet.');
+    if (r.status === 409) throw new Error((await r.json().catch(() => null))?.detail || 'You already have a higher plan.');
     const d = await handleResponse<Order>(r);
     if (!d) throw new Error('Could not start the payment');
     return d;
@@ -83,8 +107,9 @@ function loadCheckout(): Promise<void> {
 
 /** Creates an order, opens Razorpay Checkout and verifies the payment server-side. Resolves with
  *  the new plan, or null if the user closed the checkout. */
-export async function buyPro(reason: string, onBeforeOpen?: () => void): Promise<BillingStatus['plan'] | null> {
-  const [order] = await Promise.all([BillingAPI.order(reason), loadCheckout()]);
+export async function buyPro(reason: string, onBeforeOpen?: () => void,
+                             plan: Exclude<PlanId, 'free'> = 'pro'): Promise<BillingStatus['plan'] | null> {
+  const [order] = await Promise.all([BillingAPI.order(reason, plan), loadCheckout()]);
   if (!window.Razorpay) throw new Error('Razorpay did not load');
   const color = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#047857';
   return new Promise((resolve, reject) => {

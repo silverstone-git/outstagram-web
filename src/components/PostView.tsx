@@ -8,6 +8,7 @@ import { Button } from './ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from './ui/carousel';
 import { toast } from 'sonner';
+import { openProfile } from '../lib/nav';
 
 interface PostViewProps {
   postId: string;
@@ -135,7 +136,7 @@ export function PostView({ postId, onBack }: PostViewProps) {
         </div>
         <p className="font-semibold">{likes.length + (isLikedOptimistic && !post.is_liked ? 1 : 0) - (!isLikedOptimistic && post.is_liked ? 1 : 0)} likes</p>
         <p>
-          <span className="font-semibold">{post.author}</span> {post.caption}
+          <button type="button" onClick={() => openProfile(post.author)} className="font-semibold hover:underline">{post.author}</button> {post.caption}
         </p>
 
         <div>

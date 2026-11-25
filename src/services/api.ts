@@ -119,6 +119,19 @@ export interface UserProfile {
   they_follow_you: number;
   you_follow_them: number;
   avatar_url?: string | null;
+  /** daily exam streak (freezes counted) */
+  streak?: number;
+}
+
+/** A row of GET /users/{u}/followers|following/{page}. */
+export interface FollowUser {
+  user_id: number;
+  username: string;
+  fullname: string;
+  bio: string | null;
+  avatar_url: string | null;
+  you_follow_them: number;
+  is_you: boolean;
 }
 
 // Follow Request types
@@ -480,6 +493,10 @@ export class OutstagramAPI {
       headers: this.getAuthHeaders(),
       body: JSON.stringify(postData),
     });
+    // post limit (402) / videos on Free (403): open the upgrade sheet
+    const { paywallFrom } = await import('../features/billing/billing');
+    const pw = await paywallFrom(response);
+    if (pw) throw new UploadTooLargeError(pw.message || 'Upgrade needed');
 
     return handleResponse<Post>(response);
   }
@@ -736,6 +753,22 @@ export class OutstagramAPI {
     });
 
     return handleResponse<UserProfile>(response);
+  }
+
+  /** Unfollow, or cancel a pending request. */
+  static async unfollowUser(username: string): Promise<void> {
+    const r = await fetchWithHandling(`${API_BASE_URL}/users/${encodeURIComponent(username)}/follow`, {
+      method: 'DELETE', headers: this.getAuthHeaders(),
+    });
+    if (!r.ok && r.status !== 404) throw new Error((await r.json().catch(() => null))?.detail || 'Could not unfollow');
+  }
+
+  /** `which`: followers or following; 30 per page. */
+  static async getFollowList(username: string, which: 'followers' | 'following', page = 1): Promise<FollowUser[]> {
+    const r = await fetchWithHandling(`${API_BASE_URL}/users/${encodeURIComponent(username)}/${which}/${page}`, {
+      headers: this.getAuthHeaders(),
+    });
+    return (await handleResponse<FollowUser[]>(r)) ?? [];
   }
 
   static async getUserPosts(username: string, page: number = 1): Promise<Post[] | null> {
