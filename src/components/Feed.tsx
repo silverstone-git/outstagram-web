@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { OutstagramAPI } from '../services/api';
 import type { Post } from '../services/api';
 import { categoryKey } from '../types/post';
+import { openProfile } from '../lib/nav';
 
 // Types
 interface CategoryOption {
@@ -109,7 +110,7 @@ const PostHeader: React.FC<PostHeaderProps> = ({ post }) => (
         </Avatar>
         <div>
           <div className="flex items-center gap-2">
-            <div className="font-medium text-card-foreground">{post.author}</div>
+            <button type="button" onClick={() => openProfile(post.author)} className="font-medium text-card-foreground hover:underline">{post.author}</button>
             {getCategoryIcon(post.post_category)}
             {post.highlighted_by_author && (
               <div className="px-2 py-1 bg-accent/20 text-accent text-xs rounded-full">

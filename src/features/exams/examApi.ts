@@ -18,7 +18,12 @@ export interface AttemptSummary {
 export interface Attempt extends AttemptSummary { result: ExamResult }
 export interface Citation { n?: number; doc?: string; section?: string; path?: string[]; url?: string; preview?: string }
 export interface ChatMessage { role: 'user' | 'assistant'; content: string; citations?: Citation[] | null; datetime_sent: string }
-export interface Quota { limit: number; used: number; remaining: number; window_seconds: number; resets_at: string | null; plan?: 'free' | 'pro' }
+/** Contributor: `unlimited` true, limit/remaining null. */
+export interface Quota { limit: number | null; used: number; remaining: number | null; unlimited?: boolean; window_seconds: number; resets_at: string | null; plan?: 'free' | 'pro' | 'contributor' }
+
+export const quotaOut = (q: Quota | null) => q !== null && !q.unlimited && (q.remaining ?? 0) <= 0;
+/** "7/10" or "∞". */
+export const quotaShort = (q: Quota) => (q.unlimited ? '∞' : `${q.remaining}/${q.limit}`);
 export interface Skill { skill: string; title: string; documents: number }
 export interface ChatThread {
   attempt_id: string; question_id: string; exam_title: string; question: string; topic?: string | null;

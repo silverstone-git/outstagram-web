@@ -25,6 +25,11 @@ interface FilePreview {
   type: 'image' | 'video';
 }
 
+/** Photos + videos per post (the server's media_per_post). */
+const MAX_MEDIA = 4;
+/** Videos pass through the API here, and Cloud Run caps a request at 32 MB (the app uploads straight to storage). */
+const WEB_VIDEO_MAX = 30_000_000;
+
 function UploadPost({ user, initialCategory }: UploadPostProps) {
   const [caption, setCaption] = useState('');
   const [previews, setPreviews] = useState<FilePreview[]>([]);
@@ -55,14 +60,15 @@ function UploadPost({ user, initialCategory }: UploadPostProps) {
       if (files) {
         const fileArray = Array.from(files);
         
-        // Validate file types and sizes
-        const validFiles = fileArray.filter(file => {
+        // Types here; plan limits (count, video size, videos at all) are checked on Share.
+        const typed = fileArray.filter(file => {
           const isValidType = file.type.startsWith('image/') || file.type.startsWith('video/');
-          const isValidSize = file.size <= 50 * 1024 * 1024; // 50MB limit for videos
           if (!isValidType) toast.warning(`File type not supported: ${file.name}`);
-          if (!isValidSize) toast.warning(`File size exceeds 50MB: ${file.name}`);
-          return isValidType && isValidSize;
+          return isValidType;
         });
+        const room = Math.max(0, MAX_MEDIA - selectedFiles.length);
+        if (typed.length > room) toast.warning(`A post can have up to ${MAX_MEDIA} photos or videos.`);
+        const validFiles = typed.slice(0, room);
         
         setSelectedFiles(prev => [...prev, ...validFiles]);
 
@@ -91,8 +97,27 @@ function UploadPost({ user, initialCategory }: UploadPostProps) {
 
     setIsUploading(true);
     try {
-      // Compress every heavy photo first; then check the plan's per-file limit before uploading.
-      const limit = (await BillingAPI.status().catch(() => null))?.limits.media_bytes ?? 200_000;
+      // Plan limits first (lib/plans.py): videos (none on Free, size by plan), then compress photos.
+      const st = await BillingAPI.status().catch(() => null);
+      const limit = st?.limits.media_bytes ?? 200_000;
+      const videoLimit = st ? st.limits.video_bytes : 0;
+      const videos = selectedFiles.filter((f) => f.type.startsWith('video/'));
+      if (videos.length && videoLimit === 0) {
+        openPaywall({ code: 'video_not_allowed', needs: 'pro',
+          message: 'Posting videos needs Pro (up to 4 MB) or Contributor (up to 500 MB).' });
+        return;
+      }
+      const bigVideo = videos.find((f) => videoLimit != null && f.size > videoLimit);
+      if (bigVideo && videoLimit != null) {
+        openPaywall({ code: 'media_too_large', needs: st?.plan === 'pro' ? 'contributor' : undefined,
+          message: `"${bigVideo.name}" is ${formatBytes(bigVideo.size)}; videos are posted as they are and your plan allows ${formatBytes(videoLimit)}.` });
+        return;
+      }
+      const tooBigForWeb = videos.find((f) => f.size > WEB_VIDEO_MAX);
+      if (tooBigForWeb) {
+        toast.error(`"${tooBigForWeb.name}" is ${formatBytes(tooBigForWeb.size)}. The web uploads videos up to ${formatBytes(WEB_VIDEO_MAX)}; post bigger ones from the Android app.`);
+        return;
+      }
       setStatus('Compressing…');
       const files = await Promise.all(selectedFiles.map((f) => compressImage(f, Math.min(limit, 200_000))));
       const saved = selectedFiles.reduce((a, f) => a + f.size, 0) - files.reduce((a, f) => a + f.size, 0);

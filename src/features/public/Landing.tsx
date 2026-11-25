@@ -20,8 +20,8 @@ const steps = [
 ];
 
 const faqs = [
-  ['Is Outstagram free?', 'Yes. Practice exams are free, and the free plan includes AI tutor messages every hour. A Pro pass raises the limits for a month when you need more.'],
-  ['Does Pro renew automatically?', 'No. Pro is a one-time pass. When it ends you go back to Free; nothing is charged again unless you buy another pass.'],
+  ['Is Outstagram free?', 'Yes. Practice exams are free, and the free plan includes AI tutor messages every hour. A Pro pass (₹99) raises the limits for a month; Contributor (₹499) adds unlimited posts and AI help and big videos.'],
+  ['Do passes renew automatically?', 'No. Pro and Contributor are one-time passes. When it ends you go back to Free; nothing is charged again unless you buy another pass.'],
   ['Which subjects are covered?', 'We started with physics and are adding more subjects. More are on the way.'],
   ['Can I use it on my phone?', 'Yes. The web version works in any modern mobile browser, and there is an Android app you can download from the "Use it anywhere" section above. The iOS app is in the works.'],
 ];

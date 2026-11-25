@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
 import { TutorMarkdown, type PickedEquation } from './TutorMarkdown';
-import { ExamAPI, LimitError, QuotaError, type ChatMessage, type Quota, type Skill } from './examApi';
+import { ExamAPI, LimitError, QuotaError, quotaOut, type ChatMessage, type Quota, type Skill } from './examApi';
 import { openPaywall } from '../billing/billing';
 
 const SUGGESTIONS = ['Why is my answer wrong?', 'Walk me through the solution', 'What concept is this testing?', 'Give me a similar practice question'];
@@ -60,7 +60,7 @@ export function QuestionChat({ attemptId, questionId, topic, questionText, quota
   }, [topic]);
   useEffect(() => { endRef.current?.scrollIntoView({ block: 'end' }); }, [messages, busy]);
 
-  const out = quota !== null && quota.remaining <= 0;
+  const out = quotaOut(quota);
   const toggleSkill = (s: string) =>
     setChosen((c) => (c.includes(s) ? (c.length > 1 ? c.filter((x) => x !== s) : c) : [...c, s].slice(-5)));
 
@@ -180,7 +180,8 @@ export function QuestionChat({ attemptId, questionId, topic, questionText, quota
         {quota && (
           <button type="button" onClick={() => openPaywall({ code: out ? 'ai_quota' : 'manual', message: out ? `You've used all ${quota.limit} AI prompts for this hour.${resetIn(quota)}` : undefined })}
             className="text-[11px] text-muted-foreground underline-offset-2 hover:underline hover:text-foreground">
-            {quota.remaining}/{quota.limit} AI prompts left this hour{quota.plan === 'pro' ? ' · Pro' : ' · Get more'}{out ? '.' + resetIn(quota) : ''}
+            {quota.unlimited ? 'Unlimited AI prompts · Contributor'
+              : `${quota.remaining}/${quota.limit} AI prompts left this hour${quota.plan === 'pro' ? ' · Pro' : ' · Get more'}${out ? '.' + resetIn(quota) : ''}`}
           </button>
         )}
       </div>

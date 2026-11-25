@@ -91,7 +91,7 @@ const screens = [
     await p.locator('.md .katex-display').first().click({ button: 'right' });
     await p.getByText('Equation saved to favourites').waitFor();
   }],
-  ['paywall', true, async (p) => { await nav('Exams')(p); await p.getByRole('button', { name: /AI prompts left this hour/ }).click(); await p.getByText('Pay ₹99 with Razorpay').waitFor(); await p.waitForTimeout(400); }],
+  ['paywall', true, async (p) => { await nav('Exams')(p); await p.getByRole('button', { name: /AI prompts left this hour/ }).click(); await p.getByText('Get Pro · ₹99').waitFor(); await p.waitForTimeout(400); }],
 ];
 
 const report = { base: BASE, api: API.origin, shots: [], consoleErrors: [], pageErrors: [], unmocked: [], overflow: [] };
