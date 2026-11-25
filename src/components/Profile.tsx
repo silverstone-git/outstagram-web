@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Grid, Heart, Bookmark, LogOut, GraduationCap, Trophy, Crown } from 'lucide-react';
+import { Grid, Heart, Bookmark, LogOut, GraduationCap, Trophy, Crown, Camera } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
@@ -22,7 +22,26 @@ function Profile({ user, onLogout, onNavigateToPost }: ProfileProps) {
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState<MyStats | null>(null);
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
   useEffect(() => { OutstagramAPI.getMyStats().then(setStats).catch(() => {}); }, [user]);
+  useEffect(() => { OutstagramAPI.getMe().then((m) => setPhoto(m.avatar_url ?? null)).catch(() => {}); }, [user]);
+
+  const changePhoto = async (file: File | undefined) => {
+    if (!file) return;
+    setPhotoBusy(true);
+    try {
+      setPhoto(await OutstagramAPI.setAvatar(file));
+      toast.success('Profile photo updated');
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+  const removePhoto = async () => {
+    try { await OutstagramAPI.removeAvatar(); setPhoto(null); } catch (e) { toast.error((e as Error).message); }
+  };
 
   const loadUserPosts = useCallback(async () => {
     if (!user) return;
@@ -78,14 +97,23 @@ function Profile({ user, onLogout, onNavigateToPost }: ProfileProps) {
         {/* Profile Header */}
         <div className="text-center space-y-4">
           <div className="relative inline-block">
-            <Avatar className="w-24 h-24 ring-4 ring-primary/30">
-              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} />
-              <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary rounded-full flex items-center justify-center">
-              <span className="text-xs">✨</span>
-            </div>
+            <label className="cursor-pointer" aria-label="Change profile photo">
+              <Avatar className={`w-24 h-24 ring-4 ring-primary/30 ${photoBusy ? 'opacity-50' : ''}`}>
+                <AvatarImage src={photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} />
+                <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
+              </Avatar>
+              <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary rounded-full flex items-center justify-center">
+                <Camera className="w-4 h-4 text-primary-foreground" />
+              </div>
+              <input type="file" accept="image/*" className="hidden" disabled={photoBusy}
+                onChange={(e) => { changePhoto(e.target.files?.[0]); e.target.value = ''; }} />
+            </label>
           </div>
+          {photo && (
+            <button type="button" onClick={removePhoto} className="block mx-auto text-xs text-muted-foreground hover:text-destructive">
+              Remove photo
+            </button>
+          )}
 
           <div>
             <h2 className="text-xl font-bold text-card-foreground">{user.fullname}</h2>

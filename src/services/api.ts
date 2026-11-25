@@ -73,6 +73,7 @@ export interface Post {
   is_liked: boolean;
   media_urls: PostMediaUrl[];
   author: string;
+  author_avatar_url?: string | null;
 }
 
 // Exam types
@@ -95,6 +96,8 @@ export interface Comment {
   content: string;
   author_user_id: number;
   datetime_commented: string;
+  author?: string;
+  author_avatar_url?: string | null;
 }
 
 export interface Like {
@@ -115,6 +118,7 @@ export interface UserProfile {
   following_count: number;
   they_follow_you: number;
   you_follow_them: number;
+  avatar_url?: string | null;
 }
 
 // Follow Request types
@@ -154,6 +158,7 @@ export interface Me {
   email: string;
   email_verified: boolean;
   verification_required?: boolean;
+  avatar_url?: string | null;
 }
 
 export class UploadTooLargeError extends Error {}
@@ -394,6 +399,22 @@ export class OutstagramAPI {
   static async getMe(): Promise<Me> {
     const r = await fetchWithHandling(`${API_BASE_URL}/me`, { headers: this.getAuthHeaders() });
     return (await handleResponse<Me>(r))!;
+  }
+
+  /** Profile photo: the server crops it to a 512 px square. Needs a confirmed email. */
+  static async setAvatar(file: File): Promise<string | null> {
+    const form = new FormData();
+    form.append('file', file);
+    const token = Cookies.get('outstagram_token');
+    const r = await fetchWithHandling(`${API_BASE_URL}/me/avatar`, {
+      method: 'PUT', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: form,
+    });
+    return (await handleResponse<{ avatar_url: string | null }>(r))?.avatar_url ?? null;
+  }
+
+  static async removeAvatar(): Promise<void> {
+    const r = await fetchWithHandling(`${API_BASE_URL}/me/avatar`, { method: 'DELETE', headers: this.getAuthHeaders() });
+    await handleResponse(r);
   }
 
   static async sendVerifyCode(): Promise<void> {

@@ -145,7 +145,7 @@ export function PostView({ postId, onBack }: PostViewProps) {
               {comments.map(comment => (
                 <li key={comment.comment_id} className="flex items-start space-x-2">
                   <Avatar className="w-8 h-8">
-                    <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.author_user_id}`} />
+                    <AvatarImage src={comment.author_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.author_user_id}`} />
                     <AvatarFallback>{comment.author_user_id}</AvatarFallback>
                   </Avatar>
                   <p>
