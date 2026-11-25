@@ -51,6 +51,14 @@ jobs:
           API: ${{ env.VITE_API_BASE_URL }}
         run: node e2e/screens.mjs
 
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screens
+          path: e2e/out
+          retention-days: 14
+
       - name: Upload dist
         uses: actions/upload-artifact@v4
         with:

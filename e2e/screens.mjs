@@ -149,5 +149,5 @@ server.close();
 report.unmocked = [...new Set(report.unmocked)];
 fs.writeFileSync(path.join(OUT, 'report.json'), JSON.stringify(report, null, 2));
 console.log(JSON.stringify({ shots: report.shots.length, consoleErrors: report.consoleErrors.length,
-  pageErrors: report.pageErrors.length, overflow: report.overflow, unmocked: report.unmocked }, null, 2));
+  pageErrors: report.pageErrors, overflow: report.overflow, unmocked: report.unmocked }, null, 2));
 if (report.pageErrors.length) process.exitCode = 1;
