@@ -104,7 +104,7 @@ const PostHeader: React.FC<PostHeaderProps> = ({ post }) => (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-3">
         <Avatar className="w-10 h-10 ring-2 ring-primary/30">
-          <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${post.author}`} />
+          <AvatarImage src={post.author_avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.author}`} />
           <AvatarFallback>{post.author.charAt(0).toUpperCase()}</AvatarFallback>
         </Avatar>
         <div>
