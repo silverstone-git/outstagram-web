@@ -8,6 +8,7 @@ import { LogIn, UserPlus } from 'lucide-react';
 import { BrandLogo, BrandMark } from './Brand';
 import { toast } from 'sonner';
 import { OutstagramAPI } from '../services/api';
+import { EmailAuth } from './EmailAuth';
 import { pageHref } from '../features/public/routes';
 import type { User as ApiUser, RegisterData, LoginCredentials } from '../services/api';
 
@@ -29,6 +30,7 @@ function Login({ onLoginSuccess, onBack }: LoginProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [social, setSocial] = useState<{ supabase_url: string | null; providers: string[] }>({ supabase_url: null, providers: [] });
   const [socialBusy, setSocialBusy] = useState(false);
+  const [emailMode, setEmailMode] = useState<'code' | 'reset' | null>(null);
 
   useEffect(() => {
     OutstagramAPI.getAuthProviders().then(setSocial);
@@ -102,9 +104,11 @@ function Login({ onLoginSuccess, onBack }: LoginProps) {
         toast.error('Auto-login failed after registration. Please try logging in manually.');
         return;
       }
+      toast.info('We emailed you a code: confirm your email from the banner to start posting.');
+      OutstagramAPI.sendVerifyCode().catch(() => {});
       onLoginSuccess(response.user);
-    } catch {
-      toast.error('Registration failed. Please try again.');
+    } catch (e) {
+      toast.error((e as Error).message || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -127,6 +131,9 @@ function Login({ onLoginSuccess, onBack }: LoginProps) {
 
         {/* Auth Forms */}
         <Card className="bg-card border-border">
+          {emailMode ? (
+            <EmailAuth mode={emailMode} onDone={onLoginSuccess} onCancel={() => setEmailMode(null)} />
+          ) : (<>
           <Tabs defaultValue="login" className="space-y-4">
             <TabsList className="grid w-full grid-cols-2 bg-secondary">
               <TabsTrigger value="login" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
@@ -146,11 +153,11 @@ function Login({ onLoginSuccess, onBack }: LoginProps) {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="login-username">Username</Label>
+                    <Label htmlFor="login-username">Username or email</Label>
                     <Input
                       id="login-username"
                       type="text"
-                      placeholder="Enter your username"
+                      placeholder="Your username or email"
                       value={loginForm.username}
                       onChange={(e) => setLoginForm(prev => ({ ...prev, username: e.target.value }))}
                       className="border-border bg-input-background text-foreground placeholder:text-muted-foreground"
@@ -183,6 +190,14 @@ function Login({ onLoginSuccess, onBack }: LoginProps) {
                       'Login to Outstagram ✨'
                     )}
                   </Button>
+                  <div className="flex justify-between text-sm">
+                    <button type="button" className="text-primary hover:underline" onClick={() => setEmailMode('code')}>
+                      Email me a sign-in code
+                    </button>
+                    <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => setEmailMode('reset')}>
+                      Forgot password?
+                    </button>
+                  </div>
                 </CardContent>
               </form>
             </TabsContent>
@@ -299,6 +314,7 @@ function Login({ onLoginSuccess, onBack }: LoginProps) {
               </Button>
             </div>
           )}
+          </>)}
         </Card>
         <p className="text-center text-xs text-muted-foreground">
           By continuing you agree to our <a className="underline" href={pageHref('terms')}>Terms</a> and{' '}
