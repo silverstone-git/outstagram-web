@@ -23,7 +23,8 @@ export const Latex = ({ children }: LatexProps) => {
     // 1. Repair Double Escaping for Commands
     // Collapse \\command to \command (but keep standalone \\ for row breaks)
     // Regex: look for two backslashes followed by a letter.
-    text = text.replace(/\\\\([a-zA-Z])/g, '\\$1');
+    // letters (\\theta) and spacing commands (\\, \\; \\: \\!); a doubled \\, would read as a row break
+    text = text.replace(/\\\\([a-zA-Z,;:!])/g, '\\$1');
 
     // 2. Repair Row Breaks
     // If the LLM outputted quadruple backslashes for row breaks \\\\ (which become \\ in JS),
