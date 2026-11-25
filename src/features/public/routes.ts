@@ -34,7 +34,8 @@ export const CONTACT = {
   country: 'India',
 };
 
-// Native apps. Android APK is shared from Google Drive until it is on the Play Store.
+// Native apps. The Android APK is the latest build CI publishes to the public bucket (outstagram-mobile
+// publish-apk job; the same URL always holds the newest one) until the app is on the Play Store.
 export const APPS = {
-  androidApk: 'https://drive.google.com/file/d/1ZcI5a8WsMf0UpH7n9QHN7tbAAzmVUQ-x/view?usp=sharing',
+  androidApk: 'https://outsiebucket.aryan.cfd/apps/outstagram.apk',
 };
