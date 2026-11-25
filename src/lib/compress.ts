@@ -15,13 +15,15 @@ export async function compressImage(file: File, target = 200_000): Promise<File>
   const webp = await new Promise<boolean>((r) => { const c = document.createElement('canvas'); c.width = c.height = 1; c.toBlob((b) => r(!!b && b.type === 'image/webp'), 'image/webp'); });
   const type = webp ? 'image/webp' : 'image/jpeg';
   let best: Blob | null = null;
-  let edge = Math.min(2048, Math.max(bmp.width, bmp.height));
+  // paid plans (4 MB+) keep big photos; Free steps down to fit 200 kB
+  const big = target >= 4_000_000;
+  let edge = Math.min(big ? 4096 : 2048, Math.max(bmp.width, bmp.height));
   for (let round = 0; round < 6; round++) {
     const scale = Math.min(1, edge / Math.max(bmp.width, bmp.height));
     canvas.width = Math.max(1, Math.round(bmp.width * scale));
     canvas.height = Math.max(1, Math.round(bmp.height * scale));
     ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
-    for (const q of [0.82, 0.72, 0.62, 0.5]) {
+    for (const q of big ? [0.92, 0.86, 0.8] : [0.82, 0.72, 0.62, 0.5]) {
       const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, type, q));
       if (blob && (!best || blob.size < best.size)) best = blob;
       if (blob && blob.size <= target) { round = 99; break; }
