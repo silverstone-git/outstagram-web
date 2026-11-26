@@ -39,13 +39,15 @@ Last updated: 2026-11-23.
 - [x] Staging Razorpay: run `outstagram/scripts/setup-razorpay-staging.sh` (secrets + deploy), add the webhook in the Razorpay test dashboard, deploy the web preview, test with UPI `success@razorpay`
 - [x] agentcyto box: deploy `feat/kb-skills` (`docker compose up -d bff` with the new `../repo` mount) and add the nginx `location = /agentcyto/api/kb/skills` exemption (docs/knowledge-base.md §9.0)
 - [ ] Add subject content: `repo/history/`, `repo/geography/`, `repo/chemistry/` Markdown → ingest; question-bank groups for non-physics subjects so Quick practice offers them
-- [ ] Production Razorpay: live keys (after KYC) in Secret Manager for `outsie`, webhook to `https://outsie.aryan.cfd/billing/razorpay/webhook`
+- [ ] Production Razorpay: live keys in Secret Manager (`razorpay-live-*`) and wired to `outsie` (2026-11-24) — still to do: add the live-mode webhook to `https://outsie.aryan.cfd/billing/razorpay/webhook` in the dashboard, one real ₹ test payment + refund, clean test payments/qa_tester1 Pro off prod
 - [ ] Make lint blocking in CI once the existing lint debt is fixed
 
 ## Later
 
 - [x] DB moved from Neon (Frankfurt) to Supabase (Tokyo, prod `outsie` + staging `outsie-staging`), 2026-11-23. Delete the Neon project after ~1 week once nothing regresses
 - [ ] **Sign in with GitHub**: enable the provider in both Supabase projects, add `github` to `OUTSTAGRAM_SOCIAL_PROVIDERS` on Cloud Run (code already handles it)
+- [x] **Magic links** in the code email (2026-11-26): web `/signin/?h=…` + Android App Links → `POST /auth/email/link` (sign in / reset password / change email); live on prod + staging (outsie#15, web#15, mobile#13). Prod checked end to end 2026-11-26 (test account `cytomlprod`). Still to do: staging Supabase **Confirm signup** template still has Supabase's default link and no code; on-device QA of the App Link (prod APK)
+- [x] **Share links on prod** (2026-11-26): the prod app shared staging-preview URLs (`config/prod.json` WEB_BASE); now `https://outstagram.aryan.cfd`, and the prod app opens `outstagram.aryan.cfd/p/`, `/u/`, `/signin/` (mobile#14). Web: share post from the feed and the post page (web#16)
 - [x] **Sign in with Google** via Supabase Auth (PKCE; backend `/auth/supabase` links by verified email), live on prod + staging 2026-11-23. Google OAuth app is in test mode: publish it in Google Cloud console before opening to everyone
 - [ ] outstagram-app (Android): build in CI (APK artifacts), reuse the exam engine and the AI tutor API
 - [ ] Custom exam builder in the Exams tab (pariksha's advanced preset editor)
