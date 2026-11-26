@@ -10,6 +10,7 @@ import type { Post } from '../services/api';
 import { categoryKey } from '../types/post';
 import { openProfile } from '../lib/nav';
 import { UserSearch } from './UserSearch';
+import { sharePost } from '../lib/share';
 import { ReportMenu } from './ReportMenu';
 
 const myId = (): number | null => {
@@ -153,7 +154,8 @@ const PostActions: React.FC<PostActionsProps> = ({ post, onLike }) => (
       <Button variant="ghost" size="sm" className="p-2 text-muted-foreground hover:text-primary">
         <MessageCircle className="w-6 h-6" />
       </Button>
-      <Button variant="ghost" size="sm" className="p-2 text-muted-foreground hover:text-primary">
+      <Button variant="ghost" size="sm" aria-label="Share post" onClick={() => sharePost(post.post_id, post.author)}
+        className="p-2 text-muted-foreground hover:text-primary">
         <Share className="w-6 h-6" />
       </Button>
     </div>

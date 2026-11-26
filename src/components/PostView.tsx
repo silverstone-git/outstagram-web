@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { Heart, MessageCircle, ArrowLeft, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, ArrowLeft, Trash2, Share } from 'lucide-react';
+import { sharePost } from '../lib/share';
 import { OutstagramAPI } from '../services/api';
 import type { Post, Comment, Like } from '../services/api';
 import { Card, CardContent } from './ui/card';
@@ -163,6 +164,9 @@ export function PostView({ postId, onBack }: PostViewProps) {
           </Button>
           <Button variant="ghost" size="icon">
             <MessageCircle className="w-6 h-6" />
+          </Button>
+          <Button variant="ghost" size="icon" aria-label="Share post" onClick={() => sharePost(post.post_id, post.author)}>
+            <Share className="w-6 h-6" />
           </Button>
         </div>
         <p className="font-semibold">{likes.length + (isLikedOptimistic && !post.is_liked ? 1 : 0) - (!isLikedOptimistic && post.is_liked ? 1 : 0)} likes</p>
