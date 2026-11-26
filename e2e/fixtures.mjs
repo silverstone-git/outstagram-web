@@ -73,6 +73,7 @@ export const billing = { plan: 'free', valid_until: null, limits: freeLimits, fr
 
 // [method, regex on pathname+search, body or (url) => body]; a body {__raw, type} is sent verbatim.
 export const routes = [
+  ['POST', /^\/auth\/email\/link/, { access_token: 'test-token', token_type: 'bearer', user, created: false, next: null }],
   ['POST', /^\/exam-attempts\/[^/]+\/chat\/stream/, streamReply],
   ['GET', /^\/me\/stats/, stats],
   ['GET', /^\/trending/, [{ tag: '#ExamPrep', posts: 14 }, { tag: '#Physics', posts: 9 }, { tag: '#StudyGroup', posts: 4 }]],

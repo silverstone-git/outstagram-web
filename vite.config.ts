@@ -7,7 +7,8 @@ import path from 'node:path'
 // Public pages get real URLs on any static host (no SPA fallback needed): dist/<page>/index.html is a
 // copy of the app shell, which renders the page from the pathname (src/features/public/routes.ts).
 // p/ and u/ hold share links (/p/?id=..., /u/?name=...), which the Android app also opens (App Links).
-const PUBLIC_PAGES = ['pricing', 'terms', 'privacy', 'refunds', 'contact', 'p', 'u'];
+// signin/ is the magic link in the code email (/signin/?h=...), also an Android App Link.
+const PUBLIC_PAGES = ['pricing', 'terms', 'privacy', 'refunds', 'contact', 'p', 'u', 'signin'];
 const publicPages = (): Plugin => ({
   name: 'public-pages',
   apply: 'build',

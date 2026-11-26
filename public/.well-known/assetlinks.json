@@ -1,0 +1,18 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.cyto.outstagram",
+      "sha256_cert_fingerprints": ["E3:6F:5A:AD:3C:4B:EA:7A:32:D7:E6:A2:CB:6C:29:47:7A:03:CD:64:F8:27:C9:9E:6D:BE:68:9E:45:1E:5E:59"]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.cyto.outstagram.staging",
+      "sha256_cert_fingerprints": ["E3:6F:5A:AD:3C:4B:EA:7A:32:D7:E6:A2:CB:6C:29:47:7A:03:CD:64:F8:27:C9:9E:6D:BE:68:9E:45:1E:5E:59"]
+    }
+  }
+]

@@ -63,6 +63,13 @@ const screens = [
   ['login', false, async (p) => { await p.getByRole('button', { name: 'Log in' }).click(); await p.getByText('By continuing you agree').waitFor(); }],
   ['pricing', false, async (p) => { await p.goto(ORIGIN + BASE + 'pricing/', { waitUntil: 'networkidle' }); await p.getByText('Pro pass', { exact: true }).waitFor(); }],
   ['refunds', false, async (p) => { await p.goto(ORIGIN + BASE + 'refunds/', { waitUntil: 'networkidle' }); }],
+  ['magic-link', false, async (p) => { await p.goto(ORIGIN + BASE + 'signin/?h=' + 'ab'.repeat(28), { waitUntil: 'networkidle' }); await p.getByText('Finish signing in').waitFor(); }],
+  ['magic-link-done', false, async (p) => {
+    await p.goto(ORIGIN + BASE + 'signin/?h=' + 'ab'.repeat(28), { waitUntil: 'networkidle' });
+    await p.getByRole('button', { name: 'Continue to Outstagram' }).click();
+    await p.getByRole('button', { name: 'Home', exact: true }).waitFor();
+    if (new URL(p.url()).search) throw new Error('link params left in the URL: ' + p.url());
+  }],
   ['contact', false, async (p) => { await p.goto(ORIGIN + BASE + 'contact/', { waitUntil: 'networkidle' }); }],
   ['home', true, nav('Home')],
   ['home-light', true, async (p) => { await nav('Home')(p); await p.getByRole('switch', { name: /light mode/i }).first().click(); await p.waitForTimeout(300); }],
