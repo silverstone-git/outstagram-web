@@ -138,6 +138,15 @@ export const routes = [
   ['GET', /^\/ai\/chats/, { threads: [
     { attempt_id: 'att-0', question_id: 'q1', exam_title: 'GATE Physics Mock', question: 'Ground-state energy of $V = \\tfrac12 m\\omega^2 x^2$?', messages: 4, bytes: 2400, last_at: ago(5), last_preview: 'Because…' },
   ], usage: { threads: 2, bytes: 41000, max_threads: 10, max_bytes: 100000, plan: 'free' } }],
+  ['GET', /^\/ai\/options/, { plan: 'free', allowed: false, efforts: ['auto', 'low', 'medium', 'high'],
+    models: [{ id: 'gemini-flash-lite', label: 'Flash Lite · fastest', plan: 'pro', available: false },
+      { id: 'gemini-flash', label: 'Gemini Flash · smarter', plan: 'pro', available: false },
+      { id: 'heavy', label: 'Heavy · strongest (can take a minute)', plan: 'contributor', available: false }],
+    byok: { allowed: false, per_hour: 300, note: 'Your key stays on this device.', providers: [
+      { id: 'openai', api_type: 'openai', label: 'OpenAI', base_url: 'https://api.openai.com/v1', models_hint: 'model id' },
+      { id: 'anthropic', api_type: 'anthropic', label: 'Anthropic (Claude)', base_url: 'https://api.anthropic.com', models_hint: 'claude-sonnet-5-5' }] },
+    context: { passages: 8, chars: 16000, history_turns: 12 },
+    upgrade: { code: 'ai_options', message: 'Choosing the model, the thinking level and using your own API key come with Pro or Contributor.', upgrade: true } }],
   ['GET', /^\/favorites\/equations/, [
     { id: 1, latex: 'E_0 = \\frac{\\hbar\\omega}{2}', display: true, skill: 'physics', context: 'Harmonic oscillator ground state', datetime_created: ago(2) },
     { id: 2, latex: '\\nabla \\cdot \\mathbf{E} = \\rho/\\varepsilon_0', display: false, skill: 'physics', context: "Gauss's law", datetime_created: ago(9) },
