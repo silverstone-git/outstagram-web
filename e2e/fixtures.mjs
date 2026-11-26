@@ -88,6 +88,7 @@ const me = { user_id: 1, username: user.username, fullname: user.fullname, bio: 
   email_verified: true, verification_required: true, avatar_url: null };
 
 export const routes = [
+  ['POST', /^\/auth\/email\/link/, { access_token: 'test-token', token_type: 'bearer', user, created: false, next: null }],
   ['POST', /^\/exam-attempts\/[^/]+\/chat\/stream/, streamReply],
   ['GET', /^\/me\/stats/, stats],
   ['GET', /^\/trending/, [{ tag: '#ExamPrep', posts: 14 }, { tag: '#Physics', posts: 9 }, { tag: '#StudyGroup', posts: 4 }]],

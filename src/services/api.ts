@@ -38,6 +38,13 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface EmailLinkResult extends Partial<AuthResponse> {
+  created?: boolean;
+  next?: 'password' | null;
+  reset_token?: string;
+  changed_email?: string;
+}
+
 export interface RegisterResponse {
   user_id: number;
   username: string;
@@ -406,6 +413,20 @@ export class OutstagramAPI {
 
   static async emailCodeSignIn(email: string, code: string): Promise<AuthResponse> {
     const data = (await this.json<AuthResponse>('/auth/email/verify', { email: email.trim().toLowerCase(), code }))!;
+    this.setAuthToken(data.access_token);
+    return data;
+  }
+
+  /** Magic link from the code email: signs in (a forgot-password link also returns reset_token), or for a
+   * change-email link, changes that account's email without signing in. */
+  static async emailLinkSignIn(link: { token_hash?: string; access_token?: string }): Promise<EmailLinkResult> {
+    const data = (await this.json<EmailLinkResult>('/auth/email/link', link))!;
+    if (data.access_token) this.setAuthToken(data.access_token);
+    return data;
+  }
+
+  static async resetPasswordWithLink(resetToken: string, newPassword: string): Promise<AuthResponse> {
+    const data = (await this.json<AuthResponse>('/auth/password/reset-link', { reset_token: resetToken, new_password: newPassword }))!;
     this.setAuthToken(data.access_token);
     return data;
   }

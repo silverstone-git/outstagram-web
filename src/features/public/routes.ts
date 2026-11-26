@@ -20,6 +20,22 @@ function linkParam(folder: string, key: string): string | null {
 }
 export const sharedPostId = () => linkParam('p', 'id');
 export const sharedProfileName = () => linkParam('u', 'name');
+
+/** Magic link from the code email. Our template links to <base>/signin/?h=<token hash>; Supabase's default
+ * template lands here with #access_token=… (or #error_description=… when it has expired); if Supabase didn't
+ * accept our redirect it falls back to the home page with ?h=. Null when this page isn't one. */
+export type EmailLink = { token_hash?: string; access_token?: string; error?: string };
+export function emailLink(): EmailLink | null {
+  const rest = window.location.pathname.slice(base.length).replace(/^\/|\/$/g, '');
+  if (rest !== 'signin' && rest !== '') return null;
+  const h = new URLSearchParams(window.location.search).get('h');
+  if (h) return { token_hash: h };
+  const frag = new URLSearchParams(window.location.hash.slice(1));
+  const at = frag.get('access_token');
+  if (at && (rest === 'signin' || ['magiclink', 'signup', 'email'].includes(frag.get('type') ?? ''))) return { access_token: at };
+  if (rest === 'signin') return { error: frag.get('error_description')?.replace(/\+/g, ' ') || 'This sign-in link is incomplete.' };
+  return null;
+}
 export const profileHref = (name: string) => `${window.location.origin}${base}/u/?name=${encodeURIComponent(name)}`;
 export const postHref = (id: string) => `${window.location.origin}${base}/p/?id=${encodeURIComponent(id)}`;
 

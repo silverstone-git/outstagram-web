@@ -18,7 +18,8 @@ import { Paywall } from './features/billing/Paywall';
 import { Landing } from './features/public/Landing';
 import { PolicyPage } from './features/public/PolicyPages';
 import { PublicLayout } from './features/public/PublicLayout';
-import { currentPublicPage, pageHref, sharedPostId, sharedProfileName } from './features/public/routes';
+import { currentPublicPage, emailLink, pageHref, sharedPostId, sharedProfileName } from './features/public/routes';
+import { EmailLinkPage } from './components/EmailLinkPage';
 import { UserProfileView } from './components/UserProfile';
 import { onOpenProfile } from './lib/nav';
 import type { PostCategory } from './types/post';
@@ -174,6 +175,17 @@ export default function App() {
 
     if (isLoading) {
       return <LoadingSpinner />;
+    }
+
+    // Magic link from the code email (/signin/?h=…), signed in or out: it signs in as that address.
+    const link = emailLink();
+    if (link) {
+      return (
+        <>
+          <EmailLinkPage link={link} onSignedIn={handleLoginSuccess} />
+          <Toaster />
+        </>
+      );
     }
 
     // Public pages (/pricing, /terms, /privacy, /refunds, /contact) work signed in or out.
