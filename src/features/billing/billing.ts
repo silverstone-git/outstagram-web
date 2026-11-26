@@ -2,7 +2,7 @@ import { API_BASE_URL, OutstagramAPI } from '../../services/api';
 import { fetchWithHandling, handleResponse } from '../../services/handle-response';
 
 export type PaywallCode = 'ai_quota' | 'tutor_threads' | 'tutor_storage' | 'media_too_large' | 'video_not_allowed'
-  | 'posts_limit' | 'manual';
+  | 'posts_limit' | 'ai_options' | 'ai_model' | 'manual';
 /** `needs`: the plan that lifts the limit (highlighted in the sheet). */
 export interface PaywallDetail { code: PaywallCode; message?: string; needs?: PlanId; [k: string]: unknown }
 

@@ -1,4 +1,5 @@
 import { useEffect, useState, type ComponentType } from 'react';
+import { RichCaption } from './RichCaption';
 import { BookOpen, GraduationCap, MessageCircle, Trophy, Users, Zap } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -136,7 +137,7 @@ function Dashboard({ user, onNavigateToPost, onOpenExams, onCompose }: Dashboard
                       {post.highlighted_by_author && <div className="absolute top-1 right-1 w-3 h-3 bg-accent rounded-full"></div>}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm text-card-foreground mb-1 line-clamp-2 break-words">{post.caption}</div>
+                      <div className="text-sm text-card-foreground mb-1 line-clamp-2 break-words"><RichCaption text={post.caption} postId={post.post_id} /></div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span className="capitalize truncate">{String(cat).replace(/_/g, ' ')}</span>
                         <span>•</span>

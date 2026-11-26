@@ -16,6 +16,8 @@ const HEADLINE: Record<string, string> = {
   media_too_large: 'That file is too big for your plan',
   video_not_allowed: 'Videos come with Pro',
   posts_limit: "You've reached your post limit",
+  ai_options: 'Choose your AI model',
+  ai_model: 'That model comes with Contributor',
   manual: 'Outstagram plans',
 };
 

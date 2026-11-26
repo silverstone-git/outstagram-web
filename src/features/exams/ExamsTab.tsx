@@ -3,14 +3,14 @@ import { toast } from 'sonner';
 import { ExamsHome, type StartRequest } from './ExamsHome';
 import { ExamRunner } from './ExamRunner';
 import { ExamResults } from './ExamResults';
-import { ExamAPI, type Quota } from './examApi';
+import { ExamAPI, type FavoriteEquation, type Quota } from './examApi';
 import { generatePracticeExam, generatePresetExam } from './engine';
 import type { ExamConfig, ExamResult } from './types';
 
 type View =
   | { name: 'home' }
   | { name: 'running'; config: ExamConfig; examId: string | null; key: number }
-  | { name: 'results'; result: ExamResult; maxScore: number; attemptId: string | null; retake?: () => void; chat?: string };
+  | { name: 'results'; result: ExamResult; maxScore: number; attemptId: string | null; retake?: () => void; chat?: string; focus?: FavoriteEquation };
 
 /** Exams tab: home → runner (full-screen) → results with the per-question AI tutor. */
 export function ExamsTab({ onImmersive, onShareResult }: {
@@ -57,11 +57,11 @@ export function ExamsTab({ onImmersive, onShareResult }: {
     }
   }, []);
 
-  const openAttempt = async (id: string, questionId?: string) => {
+  const openAttempt = async (id: string, questionId?: string, focus?: FavoriteEquation) => {
     setBusy(`attempt:${id}`);
     try {
       const a = await ExamAPI.attempt(id);
-      setView({ name: 'results', result: a.result, maxScore: a.max_score, attemptId: a.attempt_id, chat: questionId });
+      setView({ name: 'results', result: a.result, maxScore: a.max_score, attemptId: a.attempt_id, chat: questionId, focus });
       window.scrollTo({ top: 0 });
     } catch {
       toast.error('Could not open that attempt');
@@ -78,7 +78,7 @@ export function ExamsTab({ onImmersive, onShareResult }: {
   if (view.name === 'results') {
     return <ExamResults result={view.result} maxScore={view.maxScore} attemptId={view.attemptId}
       quota={quota} onQuota={setQuota} onBack={() => setView({ name: 'home' })} onRetake={view.retake}
-      onShare={onShareResult ? () => onShareResult(view.result, view.maxScore) : undefined} openChatFor={view.chat} />;
+      onShare={onShareResult ? () => onShareResult(view.result, view.maxScore) : undefined} openChatFor={view.chat} focus={view.focus} />;
   }
   return <ExamsHome busy={busy} quota={quota} onStart={start} onOpenAttempt={openAttempt} />;
 }

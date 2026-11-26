@@ -105,7 +105,24 @@ const screens = [
     await p.getByText('ignores the zero-point energy', { exact: false }).waitFor();
     if (await p.locator('.md h3').count() < 2) throw new Error('markdown headings not rendered');
     await p.locator('.md .katex-display').first().click({ button: 'right' });
-    await p.getByText('Equation saved to favourites').waitFor();
+    // the equation menu: lifted equation over a blurred page
+    await p.getByRole('button', { name: 'Copy LaTeX' }).waitFor();
+    await p.waitForTimeout(400);
+  }],
+  ['exam-review-equation', true, async (p) => {
+    await answerAndSubmit(p);
+    await p.locator('article button[aria-expanded]').first().click();
+    await p.locator('article .katex').first().click({ button: 'right' });
+    await p.getByRole('button', { name: 'Copy LaTeX' }).waitFor();
+    await p.waitForTimeout(300);
+  }],
+  ['tutor-settings', true, async (p) => {
+    await answerAndSubmit(p);
+    await p.locator('article button[aria-expanded]').first().click();
+    await p.getByRole('button', { name: 'Ask the AI tutor' }).click();
+    await p.getByRole('button', { name: /^Model$/ }).click();
+    await p.getByText('Tutor settings').waitFor();
+    await p.waitForTimeout(300);
   }],
   ['requests', true, async (p) => { await nav('Home')(p); await p.getByRole('button', { name: /^Follow requests/ }).click(); await p.getByText('@meera').waitFor(); await p.waitForTimeout(300); }],
   ['search', true, async (p) => { await nav('Explore')(p); await p.getByRole('searchbox', { name: 'Search people' }).fill('me'); await p.getByText('@meghna.s').waitFor(); }],

@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import katex from 'katex';
-import { Copy, MessageCircle, Star, Trash2 } from 'lucide-react';
+import { Copy, ExternalLink, MessageCircle, Star, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Progress } from '../../components/ui/progress';
 import { ExamAPI, type ChatThread, type FavoriteEquation, type ThreadUsage } from './examApi';
 import { openPaywall } from '../billing/billing';
 import { Latex } from './Latex';
+import { focusEquation, forgetSavedEquations, resetSavedEquations, savedEquations } from './EquationPicker';
+import { openPost } from '../../lib/nav';
 
 const kb = (b: number) => (b >= 1_000_000 ? `${(b / 1_000_000).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1000))} kB`);
 const when = (iso: string) => new Date(iso + (iso.endsWith('Z') ? '' : 'Z')).toLocaleDateString();
@@ -72,35 +74,56 @@ function Tex({ latex, display }: { latex: string; display: boolean }) {
   return <div className="overflow-x-auto py-1" dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
-/** Equations the student long-pressed in tutor answers. */
-export function SavedEquations() {
+const FROM: Record<string, string> = { tutor: 'AI tutor', explanation: 'Explanation', question: 'Question', option: 'Answer option', post: 'Post' };
+
+/** Saved equations (long-press in tutor answers, exam reviews and posts). Tap one to go back to where
+ *  it came from: the tutor reply, the reviewed question or the post, with the equation flashing. */
+export function SavedEquations({ onOpen }: { onOpen?: (f: FavoriteEquation) => void }) {
   const [favs, setFavs] = useState<FavoriteEquation[] | null>(null);
-  useEffect(() => { ExamAPI.favorites().then(setFavs).catch(() => setFavs([])); }, []);
+  useEffect(() => {
+    const load = () => { resetSavedEquations(); savedEquations().then(setFavs).catch(() => setFavs([])); };
+    load();
+    window.addEventListener('favoriteschange', load);
+    return () => window.removeEventListener('favoriteschange', load);
+  }, []);
 
   const remove = async (f: FavoriteEquation) => {
     setFavs((x) => x?.filter((y) => y.id !== f.id) ?? null);
-    try { await ExamAPI.deleteFavorite(f.id); } catch { toast.error('Could not remove it'); ExamAPI.favorites().then(setFavs).catch(() => {}); }
+    try { await ExamAPI.deleteFavorite(f.id); forgetSavedEquations(); } catch { toast.error('Could not remove it'); ExamAPI.favorites().then(setFavs).catch(() => {}); }
   };
   const copy = (f: FavoriteEquation) => navigator.clipboard?.writeText(f.latex).then(() => toast.success('LaTeX copied'), () => {});
+  const go = (f: FavoriteEquation) => {
+    if (f.source === 'post' && f.post_id) { openPost(f.post_id); focusEquation(f.latex, undefined, 8000); return; }
+    if (f.attempt_id && onOpen) { onOpen(f); return; }
+    toast.message("This one was saved before we kept track of where equations come from.");
+  };
 
   if (!favs) return <div className="h-16 rounded-xl bg-card animate-pulse" />;
   if (favs.length === 0) {
-    return <p className="flex items-center gap-2 text-sm text-muted-foreground"><Star className="h-4 w-4 shrink-0" />Long-press any equation in a tutor answer to save it here.</p>;
+    return <p className="flex items-center gap-2 text-sm text-muted-foreground"><Star className="h-4 w-4 shrink-0" />Long-press any equation in a tutor answer, an exam review or a post to save it here.</p>;
   }
   return (
     <ul className="space-y-2">
-      {favs.map((f) => (
-        <li key={f.id} className="rounded-xl border border-border bg-card p-3">
-          <Tex latex={f.latex} display={f.display} />
-          <div className="mt-1 flex items-center gap-2">
-            <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-              {f.skill ? <span className="capitalize">{f.skill.replace(/-/g, ' ')}</span> : null}{f.context ? ` · ${f.context}` : ''}
-            </p>
-            <button type="button" aria-label="Copy LaTeX" onClick={() => copy(f)} className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-secondary"><Copy className="h-4 w-4" /></button>
-            <button type="button" aria-label="Remove from favourites" onClick={() => remove(f)} className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-secondary hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
-          </div>
-        </li>
-      ))}
+      {favs.map((f) => {
+        const where = f.source ? FROM[f.source] : f.attempt_id ? 'AI tutor' : null;
+        const canGo = (f.source === 'post' && f.post_id) || f.attempt_id;
+        return (
+          <li key={f.id} className="rounded-xl border border-border bg-card">
+            <button type="button" onClick={() => go(f)} className="block w-full rounded-t-xl p-3 pb-1 text-left hover:bg-secondary/40" title={canGo ? 'Open where you saved it' : undefined}>
+              <Tex latex={f.latex} display={f.display} />
+            </button>
+            <div className="flex items-center gap-2 px-3 pb-2">
+              <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                {where && <span className="font-medium">{where}</span>}
+                {f.skill ? <span className="capitalize">{where ? ' · ' : ''}{f.skill.replace(/-/g, ' ')}</span> : null}{f.context ? ` · ${f.context}` : ''}
+              </p>
+              {canGo && <button type="button" aria-label="Open where it was saved" onClick={() => go(f)} className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-secondary"><ExternalLink className="h-4 w-4" /></button>}
+              <button type="button" aria-label="Copy LaTeX" onClick={() => copy(f)} className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-secondary"><Copy className="h-4 w-4" /></button>
+              <button type="button" aria-label="Remove from favourites" onClick={() => remove(f)} className="shrink-0 rounded-full p-1.5 text-muted-foreground hover:bg-secondary hover:text-destructive"><Trash2 className="h-4 w-4" /></button>
+            </div>
+          </li>
+        );
+      })}
     </ul>
   );
 }

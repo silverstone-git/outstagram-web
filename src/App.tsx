@@ -21,7 +21,7 @@ import { PublicLayout } from './features/public/PublicLayout';
 import { currentPublicPage, emailLink, pageHref, sharedPostId, sharedProfileName } from './features/public/routes';
 import { EmailLinkPage } from './components/EmailLinkPage';
 import { UserProfileView } from './components/UserProfile';
-import { onOpenProfile } from './lib/nav';
+import { onOpenPost, onOpenProfile } from './lib/nav';
 import type { PostCategory } from './types/post';
 import { OutstagramAPI } from './services/api';
 import { BrandMark } from './components/Brand';
@@ -111,6 +111,8 @@ export default function App() {
     setCurrentScreen('postView');
   };
 
+  useEffect(() => onOpenPost((id) => { setBackTo(currentScreen); handleNavigateToPost(id); }));
+
   useEffect(() => onOpenProfile((name) => {
     if (currentUser && name === currentUser.username) {
       setCurrentScreen('profile');
@@ -162,7 +164,7 @@ export default function App() {
         case 'postView':
           return <PostView postId={selectedPostId!} onBack={() => {
             leaveSharedLink();
-            setCurrentScreen(selectedUsername && backTo === 'user' ? 'user' : 'dashboard');
+            setCurrentScreen(backTo === 'exams' ? 'exams' : selectedUsername && backTo === 'user' ? 'user' : 'dashboard');
           }} />;
         case 'user':
           return <UserProfileView username={selectedUsername!} onNavigateToPost={(id) => { setBackTo('user'); handleNavigateToPost(id); }}
