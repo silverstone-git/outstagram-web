@@ -12,6 +12,10 @@ import { openProfile } from '../lib/nav';
 import { UserSearch } from './UserSearch';
 import { ReportMenu } from './ReportMenu';
 
+const myId = (): number | null => {
+  try { return JSON.parse(localStorage.getItem('outstagram_user') ?? 'null')?.user_id ?? null; } catch { return null; }
+};
+
 // Types
 interface CategoryOption {
   value: string;
@@ -125,7 +129,7 @@ const PostHeader: React.FC<PostHeaderProps> = ({ post }) => (
           </div>
         </div>
       </div>
-      <ReportMenu postId={post.post_id} />
+      {post.author_user_id !== myId() && <ReportMenu postId={post.post_id} />}
     </div>
   </CardHeader>
 );

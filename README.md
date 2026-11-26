@@ -118,6 +118,18 @@ We welcome contributions to Froutstagram! To ensure a smooth development process
 - **People search** (`src/components/UserSearch.tsx`): top of Explore, `GET /users/search` with a 250 ms debounce; Escape clears.
 - Profiles, follow/unfollow and follower lists: `src/components/UserProfile.tsx`.
 
+## Admin panel (`/admin/`)
+
+`src/features/admin/` is a separate, lazily loaded bundle (`src/main.tsx` picks it from the path; `vite.config.ts` copies the shell into `dist/admin/`). Sign-in is Google via Supabase PKCE, then `POST /admin/session` on outsie, which only answers for verified Google emails in `OUTSIE_ADMIN_EMAILS`; the 2-hour admin token lives in `sessionStorage`. The bundle holds no secrets: every check is on the server.
+
+- **Overview**: live counts (users, posts, queue, suspicious, frozen, revenue, AI use) and which moderation engines are on.
+- **Review queue**: posts, comments and accounts flagged by the rules, the LLM (Gemini Flash-Lite via agentcyto), optional Cloud Vision SafeSearch, or user reports. Delete (one or selected in bulk, optional email to the author), Keep (dismiss), Freeze author, Scan backlog.
+- **Users**: search by username/name/email/id, filters (suspicious = risk score ≥ 3 with the reasons shown, new, unconfirmed, frozen). The account sheet has Freeze/Unfreeze with an email notice (standard text or your own), Email, plan changes, mark email confirmed, sign out everywhere, remove photo, delete account (type the username), and the account's posts, comments, payments, flags and admin history.
+- **Posts**: every post with its model score; search, open-flags-only, re-scan, bulk delete.
+- **Audit log**: every admin action.
+
+Users report posts from the ⋮ menu (`src/components/ReportMenu.tsx`, Explore and the single-post view); a frozen account is signed out with the reason (`account_frozen` in `handle-response.ts`). If Supabase sends the admin sign-in back to the site root (redirect URL not allow-listed), `main.tsx` forwards it to `/admin/`.
+
 ## Public pages
 
 Signed-out visitors see a landing page (`src/features/public/`). `/pricing`, `/terms`, `/privacy`, `/refunds` and `/contact` are real URLs on any static host: the build copies `index.html` into each folder and the app renders the page from the pathname. Prices come from outsie's public `GET /billing/plans`; contact details live in `src/features/public/routes.ts`.

@@ -118,7 +118,7 @@ const screens = [
     await p.getByRole('button', { name: 'Delete comment' }).last().dispatchEvent('click');
     await p.getByText('Delete this comment?').waitFor(); await p.waitForTimeout(300);
   }],
-  ['report-post', true, async (p) => { await nav('Home')(p); await p.getByRole('button', { name: 'More' }).first().click(); await p.getByRole('menuitem', { name: 'Report post' }).click(); await p.getByText('Report this post').waitFor(); }],
+  ['report-post', true, async (p) => { await nav('Explore')(p); await p.getByRole('button', { name: 'More' }).first().click(); await p.getByRole('menuitem', { name: 'Report post' }).click(); await p.getByText('Report this post').waitFor(); }],
   ['admin-signin', false, async (p) => { await p.goto(ORIGIN + BASE + 'admin/', { waitUntil: 'networkidle' }); await p.getByText('Continue with Google').waitFor(); }],
   ['admin-overview', false, adminOpen(null)],
   ['admin-queue', false, adminTab('Review queue')],
