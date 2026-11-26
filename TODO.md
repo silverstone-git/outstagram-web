@@ -1,7 +1,7 @@
 # Roadmap: Outstagram + Pariksha + agentcyto
 
 Covers outstagram-web, the outstagram backend (`outsie`), pariksha and the agentcyto integration.
-Last updated: 2026-11-23.
+Last updated: 2026-11-26.
 
 ## Done (on feature branches, not yet in production)
 
@@ -28,6 +28,11 @@ Last updated: 2026-11-23.
 - [x] Landing page for signed-out visitors + `/pricing` (live from `GET /billing/plans`), `/terms`, `/privacy`, `/refunds`, `/contact` (`outstagram-web feat/landing-legal`)
 
 ## Next
+- [x] **Admin panel** at `/admin/` (web) + `/admin/*` API (outsie): review queue (rules + Gemini + optional Cloud Vision + user reports), users with risk scores, freeze/unfreeze with email, post/comment removal (bulk), plans, audit log; Report post menu; PUT /posts made author-only (`feat/admin-panel` in both repos)
+- [ ] Admin panel rollout (in progress 2026-11-26): SMTP for notices (`outstagram/scripts/setup-admin-mail.sh outsie <env file>`, same SMTP as Supabase), re-run `scripts/supabase-lockdown.sql` (tables `moderationflag`, `moderationscan`, `adminaction`), add `https://outstagram.aryan.cfd/admin/` to Supabase redirect URLs (optional: the root fallback works), optionally `--vision` for Cloud Vision SafeSearch
+- [ ] Mobile: ⋮ → Report on posts/comments/profiles (`POST /posts|comments/{id}/report`, `/users/{name}/report`) and handle `403 account_frozen` (sign out, show the message)
+- [ ] Admin panel later: report button on comments and profiles in the web app, appeal inbox (replies to notices go to OUTSIE_MAIL_REPLY_TO today), IP/device signals for ban evasion, broadcast email
+
 
 - [ ] Admin rollout: set `OUTSIE_ADMIN_EMAILS` on `outsie` (+ staging), add `https://pariksha.aryan.cfd/**` to Supabase Auth redirect URLs and the pariksha origin to `OUTSTAGRAM_ALLOWED_ORIGINS`, rotate `PARIKSHA_ADMIN_SECRET` to 32+ chars (or unset it)
 - [ ] agentcyto box: deploy `feat/kb-admin-gate` (`docker compose up -d bff`), make `repo/` writable by the container's APP_UID, add `https://t.aryan.cfd/agentcyto/**` to Supabase redirect URLs

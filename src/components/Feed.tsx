@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Heart, MessageCircle, Share, MoreVertical, Bookmark, Trophy, BookOpen, GraduationCap } from 'lucide-react';
+import { Heart, MessageCircle, Share, Bookmark, Trophy, BookOpen, GraduationCap } from 'lucide-react';
 import { Card, CardContent, CardHeader } from './ui/card';
 import { Button } from './ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
@@ -11,6 +11,11 @@ import { categoryKey } from '../types/post';
 import { openProfile } from '../lib/nav';
 import { UserSearch } from './UserSearch';
 import { sharePost } from '../lib/share';
+import { ReportMenu } from './ReportMenu';
+
+const myId = (): number | null => {
+  try { return JSON.parse(localStorage.getItem('outstagram_user') ?? 'null')?.user_id ?? null; } catch { return null; }
+};
 
 // Types
 interface CategoryOption {
@@ -125,9 +130,7 @@ const PostHeader: React.FC<PostHeaderProps> = ({ post }) => (
           </div>
         </div>
       </div>
-      <Button variant="ghost" size="sm" className="text-muted-foreground">
-        <MoreVertical className="w-5 h-5" />
-      </Button>
+      {post.author_user_id !== myId() && <ReportMenu postId={post.post_id} />}
     </div>
   </CardHeader>
 );

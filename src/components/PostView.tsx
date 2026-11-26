@@ -15,6 +15,8 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from './ui/alert-dialog';
 
+import { ReportMenu } from './ReportMenu';
+
 /** The signed-in user's id (App keeps the user in localStorage). */
 const myUserId = (): number | null => {
   try { return JSON.parse(localStorage.getItem('outstagram_user') ?? 'null')?.user_id ?? null; } catch { return null; }
@@ -128,6 +130,7 @@ export function PostView({ postId, onBack }: PostViewProps) {
           <ArrowLeft className="w-6 h-6" />
         </Button>
         <h1 className="text-xl font-bold ml-4">Post</h1>
+        {post.author_user_id !== myUserId() && <div className="ml-auto"><ReportMenu postId={post.post_id} /></div>}
       </div>
 
       <Card className="m-4">
