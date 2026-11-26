@@ -211,7 +211,19 @@ html {
 .md table { display: block; overflow-x: auto; border-collapse: collapse; font-size: 0.9em; }
 .md th, .md td { border: 1px solid var(--border); padding: 0.3em 0.5em; }
 .md .katex-display { overflow-x: auto; overflow-y: hidden; padding: 0.25em 0; margin: 0.5em 0; }
-/* Equations can be long-pressed (or right-clicked) to save them as favourites. */
-.md .katex { -webkit-touch-callout: none; border-radius: 0.3em; transition: background-color .2s; }
-.md .katex-display, .md .katex:not(.katex-display .katex) { cursor: pointer; }
-.md .fav-pressing, .md .fav-flash { background: color-mix(in srgb, var(--primary) 22%, transparent); }
+/* Equations can be long-pressed (or right-clicked) to open the equation menu (EquationPicker.tsx). */
+.eq-zone .katex { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; border-radius: 0.3em; transition: background-color .2s, transform .2s; }
+.eq-zone .katex-display, .eq-zone .katex:not(.katex-display .katex) { cursor: pointer; }
+.eq-zone .fav-pressing { background: color-mix(in srgb, var(--primary) 22%, transparent); transform: scale(0.98); }
+@keyframes eq-menu-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes eq-lift { from { transform: scale(0.94) translateY(6px); opacity: 0.4; } to { transform: none; opacity: 1; } }
+.eq-menu-in { animation: eq-menu-in .16s ease-out; }
+.eq-lift { animation: eq-lift .22s cubic-bezier(.2,.9,.3,1.2); }
+/* Opened from "Saved equations": the equation it came from pulses for a few seconds. */
+@keyframes eq-highlight {
+  0%, 100% { background: transparent; box-shadow: none; }
+  15%, 70% { background: color-mix(in srgb, var(--primary) 26%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 35%, transparent); }
+}
+.eq-highlight { animation: eq-highlight 3s ease-in-out; border-radius: 0.4em; }
+
+@keyframes adminbar { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }

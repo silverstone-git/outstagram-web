@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { RichCaption } from './RichCaption';
 import { Heart, MessageCircle, Share, Bookmark, Trophy, BookOpen, GraduationCap } from 'lucide-react';
 import { Card, CardContent, CardHeader } from './ui/card';
 import { Button } from './ui/button';
@@ -205,7 +206,7 @@ const PostContent: React.FC<PostContentProps> = ({ post, onLike }) => {
         {/* Caption */}
         <div className="text-card-foreground mb-2">
           <span className="font-medium">@{post.author}</span>{' '}
-          <span className="text-sm">{post.caption}</span>
+          <RichCaption className="text-sm" text={post.caption} postId={post.post_id} />
         </div>
 
         {/* Category Badge */}

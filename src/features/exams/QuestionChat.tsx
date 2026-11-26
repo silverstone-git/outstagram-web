@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { BookOpen, Library, Loader2, SendHorizonal, Sparkles } from 'lucide-react';
-import { toast } from 'sonner';
+import { BookOpen, Library, Loader2, SendHorizonal, Settings2, Sparkles } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Textarea } from '../../components/ui/textarea';
-import { TutorMarkdown, type PickedEquation } from './TutorMarkdown';
-import { ExamAPI, LimitError, QuotaError, quotaOut, type ChatMessage, type Quota, type Skill } from './examApi';
+import { TutorMarkdown } from './TutorMarkdown';
+import { ExamAPI, LimitError, QuotaError, quotaOut, type AIOptions, type ChatMessage, type Quota, type Skill } from './examApi';
+import { choiceFor, choiceLabel, loadOptions, TutorSettings, useTutorPrefs } from './TutorSettings';
+import { focusEquation } from './EquationPicker';
 import { openPaywall } from '../billing/billing';
 
 const SUGGESTIONS = ['Why is my answer wrong?', 'Walk me through the solution', 'What concept is this testing?', 'Give me a similar practice question'];
@@ -25,13 +26,15 @@ function guessSkill(skills: Skill[], fallback: string, topic?: string): string {
   return skills.find((s) => t.includes(s.skill.replace(/-/g, ' ')))?.skill ?? fallback;
 }
 
-export function QuestionChat({ attemptId, questionId, topic, questionText, quota, onQuota }: {
+export function QuestionChat({ attemptId, questionId, topic, questionText, quota, onQuota, focus }: {
   attemptId: string | null;
   questionId: string;
   topic?: string;
   questionText?: string;
   quota: Quota | null;
   onQuota: (q: Quota | null) => void;
+  /** Opened from "Saved equations": scroll to this tutor reply and flash the equation. */
+  focus?: { messageId?: number | null; latex: string } | null;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
@@ -42,6 +45,16 @@ export function QuestionChat({ attemptId, questionId, topic, questionText, quota
   const [skills, setSkills] = useState<Skill[]>([]);
   const [chosen, setChosen] = useState<string[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
+  const [prefs] = useTutorPrefs();
+  const [options, setOptions] = useState<AIOptions | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  useEffect(() => {
+    let live = true;
+    loadOptions().then((o) => live && setOptions(o));
+    const on = () => loadOptions(true).then((o) => live && setOptions(o));
+    window.addEventListener('planchange', on);
+    return () => { live = false; window.removeEventListener('planchange', on); };
+  }, []);
 
   useEffect(() => {
     if (!attemptId) { setLoading(false); return; }
@@ -58,23 +71,23 @@ export function QuestionChat({ attemptId, questionId, topic, questionText, quota
     });
     return () => { live = false; };
   }, [topic]);
-  useEffect(() => { endRef.current?.scrollIntoView({ block: 'end' }); }, [messages, busy]);
+  const focused = useRef(false);
+  useEffect(() => {
+    if (focus && !focused.current) return; // wait for the jump to the saved equation
+    endRef.current?.scrollIntoView({ block: 'end' });
+  }, [messages, busy, focus]);
+  useEffect(() => {
+    if (!focus || loading || focused.current) return;
+    focused.current = true;
+    focusEquation(focus.latex, focus.messageId ? `[data-msg-id="${focus.messageId}"]` : undefined);
+  }, [focus, loading]);
 
   const out = quotaOut(quota);
   const toggleSkill = (s: string) =>
     setChosen((c) => (c.includes(s) ? (c.length > 1 ? c.filter((x) => x !== s) : c) : [...c, s].slice(-5)));
 
-  const favourite = async (eq: PickedEquation) => {
-    try {
-      const fav = await ExamAPI.addFavorite({ ...eq, skill: chosen[0] ?? null, context: questionText?.slice(0, 300) ?? null,
-        attempt_id: attemptId, question_id: questionId });
-      toast.success('Equation saved to favourites', {
-        action: { label: 'Undo', onClick: () => { ExamAPI.deleteFavorite(fav.id).catch(() => {}); } },
-      });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not save the equation');
-    }
-  };
+  const eqMeta = (m: ChatMessage) => ({ skill: chosen[0] ?? null, context: questionText?.slice(0, 300) ?? null,
+    attempt_id: attemptId, question_id: questionId, message_id: m.id ?? null, source: 'tutor' as const });
 
   const send = async (text: string) => {
     const msg = text.trim();
@@ -87,15 +100,15 @@ export function QuestionChat({ attemptId, questionId, topic, questionText, quota
     try {
       const r = await ExamAPI.askStream(attemptId, questionId, msg, chosen.length ? chosen : undefined, {
         onStatus: setStatus,
-        onMeta: (meta) => { setStatus(null); patchLast((m) => ({ ...m, citations: meta.citations })); },
+        onMeta: (meta) => { setStatus(null); patchLast((m) => ({ ...m, citations: meta.citations, model: meta.model })); },
         onDelta: (t) => { setStatus(null); patchLast((m) => ({ ...m, content: m.content + t })); },
-      });
-      patchLast(() => r.message);
-      onQuota(r.quota);
+      }, choiceFor(prefs, options));
+      patchLast(() => ({ ...r.message, model: r.model }));
+      if (!r.quota?.byok) onQuota(r.quota); // BYOK prompts have their own cap
     } catch (e) {
       setMessages((m) => m.slice(0, -2));
       setDraft(msg);
-      if (e instanceof QuotaError) { onQuota(e.quota); setError(e.message + resetIn(e.quota)); }
+      if (e instanceof QuotaError) { if (!e.quota?.byok) onQuota(e.quota); setError((e.quota?.byok ? 'Your own-key prompts for this hour are used up.' : e.message) + resetIn(e.quota)); }
       else if (e instanceof LimitError) setError(e.message);
       else setError(e instanceof Error ? e.message : 'Something went wrong');
     } finally {
@@ -108,12 +121,16 @@ export function QuestionChat({ attemptId, questionId, topic, questionText, quota
   }
 
   const last = messages[messages.length - 1];
+  const who = choiceLabel(prefs, options);
   return (
     <div className="flex flex-col min-h-0 flex-1">
-      {skills.length > 1 && (
-        <div className="flex items-center gap-1.5 overflow-x-auto px-4 pb-2 shrink-0" aria-label="Books to search">
-          <Library className="w-4 h-4 shrink-0 text-muted-foreground" />
-          {skills.map((s) => {
+      <div className="flex items-center gap-1.5 overflow-x-auto px-4 pb-2 shrink-0" aria-label="Books to search">
+        <button type="button" onClick={() => setShowSettings((v) => !v)} aria-pressed={showSettings} title="Model, thinking, your own API key"
+          className={`shrink-0 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs ${showSettings || who ? 'border-primary text-primary' : 'border-border text-muted-foreground'}`}>
+          <Settings2 className="w-3.5 h-3.5" />{who ?? 'Model'}
+        </button>
+        {skills.length > 1 && <Library className="w-4 h-4 shrink-0 text-muted-foreground" />}
+        {skills.length > 1 && skills.map((s) => {
             const on = chosen.includes(s.skill);
             return (
               <button key={s.skill} type="button" onClick={() => toggleSkill(s.skill)} aria-pressed={on}
@@ -122,8 +139,8 @@ export function QuestionChat({ attemptId, questionId, topic, questionText, quota
               </button>
             );
           })}
-        </div>
-      )}
+      </div>
+      {showSettings && <div className="shrink-0 max-h-[55%] overflow-y-auto"><TutorSettings options={options} onClose={() => setShowSettings(false)} /></div>}
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-3 space-y-3 border-t border-border" aria-live="polite">
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading conversation…</p>
@@ -141,11 +158,12 @@ export function QuestionChat({ attemptId, questionId, topic, questionText, quota
         {messages.map((m, i) => {
           if (m.role === 'assistant' && !m.content && busy && m === last) return null;
           return (
-            <div key={i} className={m.role === 'user' ? 'flex justify-end' : ''}>
+            <div key={m.id ?? `i${i}`} data-msg-id={m.id ?? undefined} className={m.role === 'user' ? 'flex justify-end' : ''}>
               <div className={m.role === 'user'
                 ? 'max-w-[85%] rounded-2xl rounded-br-sm bg-primary text-primary-foreground px-3 py-2 text-sm whitespace-pre-wrap break-words'
                 : 'max-w-full rounded-2xl rounded-bl-sm bg-secondary px-3 py-2 text-sm leading-relaxed break-words'}>
-                {m.role === 'user' ? m.content : <TutorMarkdown text={m.content} onPickEquation={favourite} />}
+                {m.role === 'user' ? m.content : <TutorMarkdown text={m.content} equations={() => eqMeta(m)} />}
+                {m.role === 'assistant' && m.model && <p className="mt-1 text-[10px] text-muted-foreground">{m.model}</p>}
                 {!!m.citations?.length && (
                   <div className="mt-2 pt-2 border-t border-border space-y-1">
                     {m.citations.map((c, j) => (

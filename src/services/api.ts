@@ -459,6 +459,21 @@ export class OutstagramAPI {
     return (await handleResponse<{ avatar_url: string | null }>(r))?.avatar_url ?? null;
   }
 
+  /** Everything stored about the signed-in user, as a JSON file. */
+  static async exportMyData(): Promise<Blob> {
+    const r = await fetchWithHandling(`${API_BASE_URL}/me/export`, { headers: this.getAuthHeaders() });
+    if (!r.ok) { await handleResponse(r); throw new Error('Could not export your data'); }
+    return r.blob();
+  }
+
+  /** Permanently deletes the account and everything in it. */
+  static async deleteMyAccount(confirmUsername: string): Promise<void> {
+    const r = await fetchWithHandling(`${API_BASE_URL}/me/delete`, {
+      method: 'POST', headers: this.getAuthHeaders(), body: JSON.stringify({ confirm_username: confirmUsername.trim() }),
+    });
+    await handleResponse(r);
+  }
+
   static async removeAvatar(): Promise<void> {
     const r = await fetchWithHandling(`${API_BASE_URL}/me/avatar`, { method: 'DELETE', headers: this.getAuthHeaders() });
     await handleResponse(r);

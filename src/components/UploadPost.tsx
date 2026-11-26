@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { RichCaption } from './RichCaption';
 import { Camera, Image, X, Sparkles, Hash, MapPin, Users, Trophy, BookOpen, GraduationCap, Award, Star, Video } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -375,8 +376,15 @@ function UploadPost({ user, initialCategory }: UploadPostProps) {
               onChange={(e) => setCaption(e.target.value)}
               className="min-h-24 border-border bg-input-background text-foreground placeholder:text-muted-foreground resize-none"
             />
-            <div className="mt-2 text-sm text-muted-foreground text-right">
-              {caption.length}/2200
+            {/\$[^$\s]|\\[([]/.test(caption) && (
+              <div className="mt-2 rounded-lg border border-border bg-secondary/40 p-2 text-sm">
+                <p className="mb-1 text-xs text-muted-foreground">Preview</p>
+                <RichCaption text={caption} />
+              </div>
+            )}
+            <div className="mt-2 flex justify-between gap-2 text-sm text-muted-foreground">
+              <span className="text-xs">Maths: wrap LaTeX in $…$ or $$…$$</span>
+              <span>{caption.length}/2200</span>
             </div>
           </CardContent>
         </Card>

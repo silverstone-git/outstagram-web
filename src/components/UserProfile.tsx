@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { RichCaption } from './RichCaption';
 import { ArrowLeft, Check, Clock, Flame, GraduationCap, Share2, Trophy, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -138,7 +139,7 @@ export function UserProfileView({ username, onBack, onNavigateToPost }: Props) {
                       <div className="w-full h-full bg-secondary/50 flex items-center justify-center p-2 text-xs text-left">
                         {categoryKey(post.post_category) === 'exam_result' ? <GraduationCap className="w-8 h-8 text-accent" />
                           : categoryKey(post.post_category) === 'achievement' ? <Trophy className="w-8 h-8 text-primary" />
-                          : <span className="line-clamp-5">{post.caption}</span>}
+                          : <RichCaption className="line-clamp-5" text={post.caption} postId={post.post_id} />}
                       </div>
                     )}
                   </button>

@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { BookOpenCheck, ChevronRight, Clock, History, Loader2, MessagesSquare, Sparkles, Star, Users } from 'lucide-react';
 import { openPaywall } from '../billing/billing';
 import { SavedEquations, TutorHistory } from './TutorLibrary';
+import type { FavoriteEquation } from './examApi';
 import { PRESETS, SUBJECTS } from './engine';
 import { ExamAPI, quotaOut, quotaShort, type AttemptSummary, type Quota } from './examApi';
 import type { ServerExam } from './types';
@@ -15,7 +16,7 @@ export function ExamsHome({ busy, quota, onStart, onOpenAttempt }: {
   busy: string | null;
   quota: Quota | null;
   onStart: (r: StartRequest, key: string) => void;
-  onOpenAttempt: (id: string, questionId?: string) => void;
+  onOpenAttempt: (id: string, questionId?: string, focus?: FavoriteEquation) => void;
 }) {
   const [attempts, setAttempts] = useState<AttemptSummary[] | null>(null);
   const [community, setCommunity] = useState<ServerExam[] | null>(null);
@@ -100,7 +101,7 @@ export function ExamsHome({ busy, quota, onStart, onOpenAttempt }: {
       </div>
 
       <Section icon={<Star className="w-4 h-4" />} title="Saved equations">
-        <SavedEquations />
+        <SavedEquations onOpen={(f) => f.attempt_id && onOpenAttempt(f.attempt_id, f.question_id ?? undefined, f)} />
       </Section>
 
       <Section icon={<Users className="w-4 h-4" />} title="Community exams">

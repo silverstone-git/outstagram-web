@@ -7,7 +7,8 @@ import { Latex } from './Latex';
 import { QuestionChat } from './QuestionChat';
 import type { ExamResult, ShuffledQuestion, UserAnswer } from './types';
 import { formatTime } from './engine';
-import type { Quota } from './examApi';
+import type { FavoriteEquation, Quota } from './examApi';
+import { EquationZone, focusEquation, type EquationSource } from './EquationPicker';
 
 type Filter = 'all' | 'wrong' | 'skipped' | 'flagged';
 const attempted = (a?: UserAnswer) =>
@@ -18,7 +19,7 @@ function correctText(q: ShuffledQuestion): string {
   return '';
 }
 
-export function ExamResults({ result, maxScore, attemptId, quota, onQuota, onBack, onRetake, onShare, openChatFor }: {
+export function ExamResults({ result, maxScore, attemptId, quota, onQuota, onBack, onRetake, onShare, openChatFor, focus }: {
   result: ExamResult;
   maxScore: number;
   attemptId: string | null;
@@ -28,6 +29,7 @@ export function ExamResults({ result, maxScore, attemptId, quota, onQuota, onBac
   onRetake?: () => void;
   onShare?: () => void;
   openChatFor?: string; // question id: open its tutor chat right away (from tutor history)
+  focus?: FavoriteEquation | null; // from "Saved equations": open where it was saved and flash it
 }) {
   const [filter, setFilter] = useState<Filter>('all');
   const [open, setOpen] = useState<string | null>(null);
@@ -36,8 +38,15 @@ export function ExamResults({ result, maxScore, attemptId, quota, onQuota, onBac
   useEffect(() => {
     if (!openChatFor) return;
     const q = result.originalQuestions.find((x) => x.id === openChatFor);
-    if (q) { setOpen(q.id); setChatFor(q); }
-  }, [openChatFor, result]);
+    if (q) { setOpen(q.id); if (focus?.source !== 'question' && focus?.source !== 'option' && focus?.source !== 'explanation') setChatFor(q); }
+  }, [openChatFor, result, focus]);
+  useEffect(() => {
+    if (!focus || focus.source === 'tutor' || !focus.question_id) return;
+    setFilter('all');
+    focusEquation(focus.latex, `[data-q="${CSS.escape(focus.question_id)}"]`);
+  }, [focus]);
+  const eq = (q: ShuffledQuestion, source: 'question' | 'option' | 'explanation') => (): EquationSource => ({
+    source, attempt_id: attemptId, question_id: q.id, context: String(q.question ?? '').slice(0, 300), skill: null, message_id: null, post_id: null });
   const skipped = result.originalQuestions.filter((q) => !attempted(byId.get(q.id))).length;
   const wrong = result.originalQuestions.length - result.correctAnswers - skipped;
   const topics = Object.entries(result.accuracyPerTopic).sort((a, b) => a[1] - b[1]);
@@ -98,10 +107,12 @@ export function ExamResults({ result, maxScore, attemptId, quota, onQuota, onBac
             const status = !attempted(a) ? 'skipped' : a!.isCorrect ? 'correct' : 'wrong';
             const isOpen = open === q.id;
             return (
-              <article key={q.id} className="rounded-xl border border-border bg-card overflow-hidden">
+              <article key={q.id} data-q={q.id} className="rounded-xl border border-border bg-card overflow-hidden">
                 <button type="button" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? null : q.id)} className="w-full flex items-start gap-3 p-3 text-left">
                   <span className={`shrink-0 mt-0.5 grid place-items-center w-7 h-7 rounded-full text-xs font-semibold ${status === 'correct' ? 'bg-primary/20 text-primary' : status === 'wrong' ? 'bg-destructive/20 text-destructive' : 'bg-secondary text-muted-foreground'}`}>{i + 1}</span>
-                  <span className={`min-w-0 flex-1 text-sm ${isOpen ? '' : 'line-clamp-2'}`}><Latex>{q.question}</Latex></span>
+                  <span className={`min-w-0 flex-1 text-sm ${isOpen ? '' : 'line-clamp-2'}`}>{isOpen
+                    ? <EquationZone as="span" meta={eq(q, 'question')}><Latex>{q.question}</Latex></EquationZone>
+                    : <Latex>{q.question}</Latex>}</span>
                   <ChevronDown className={`w-4 h-4 shrink-0 mt-1 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {isOpen && (
@@ -112,7 +123,7 @@ export function ExamResults({ result, maxScore, attemptId, quota, onQuota, onBac
                       return (
                         <div key={o.label} className={`flex items-start gap-2 rounded-lg border p-2 ${right ? 'border-primary/60 bg-primary/10' : mine ? 'border-destructive/60 bg-destructive/10' : 'border-border'}`}>
                           <span className="shrink-0 w-4 mt-0.5">{right ? <Check className="w-4 h-4 text-primary" /> : mine ? <XIcon className="w-4 h-4 text-destructive" /> : null}</span>
-                          <span className="min-w-0 flex-1"><Latex>{o.value}</Latex></span>
+                          <EquationZone as="span" className="min-w-0 flex-1" meta={eq(q, 'option')}><Latex>{o.value}</Latex></EquationZone>
                           {mine && <span className="shrink-0 text-[10px] uppercase text-muted-foreground">yours</span>}
                         </div>
                       );
@@ -123,10 +134,11 @@ export function ExamResults({ result, maxScore, attemptId, quota, onQuota, onBac
                     {q.explanation && (
                       <div className="rounded-lg bg-secondary/50 p-3">
                         <p className="text-xs font-semibold text-muted-foreground mb-1">Explanation</p>
-                        <Latex>{q.explanation}</Latex>
+                        <EquationZone meta={eq(q, 'explanation')}><Latex>{q.explanation}</Latex></EquationZone>
                       </div>
                     )}
-                    <Button className="w-full h-11" variant={status === 'correct' ? 'secondary' : 'default'} onClick={() => setChatFor(q)}>
+                    <p className="text-[11px] text-muted-foreground">Long-press (or right-click) an equation to save or copy it.</p>
+                <Button className="w-full h-11" variant={status === 'correct' ? 'secondary' : 'default'} onClick={() => setChatFor(q)}>
                       <MessageCircle className="w-4 h-4" /> Ask the AI tutor
                     </Button>
                   </div>
@@ -154,7 +166,8 @@ export function ExamResults({ result, maxScore, attemptId, quota, onQuota, onBac
             )}
           </DrawerHeader>
           {chatFor && <QuestionChat attemptId={attemptId} questionId={chatFor.id} topic={chatFor.topic}
-            questionText={chatFor.question} quota={quota} onQuota={onQuota} />}
+            questionText={chatFor.question} quota={quota} onQuota={onQuota}
+            focus={focus?.source === 'tutor' || (focus && !focus.source && focus.question_id === chatFor.id) ? { messageId: focus.message_id, latex: focus.latex } : null} />}
         </DrawerContent>
       </Drawer>
     </div>

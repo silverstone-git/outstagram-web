@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { RichCaption } from './RichCaption';
 import { Heart, MessageCircle, ArrowLeft, Trash2, Share } from 'lucide-react';
 import { sharePost } from '../lib/share';
 import { OutstagramAPI } from '../services/api';
@@ -151,7 +152,7 @@ export function PostView({ postId, onBack }: PostViewProps) {
             <img src={post.media_urls[0].url} alt="Post media" className="w-full h-auto object-cover" />
           ) : (
             <div className="p-6">
-              <p className="text-lg font-semibold">{post.caption}</p>
+              <p className="text-lg font-semibold"><RichCaption text={post.caption} postId={post.post_id} /></p>
             </div>
           )}
         </CardContent>
@@ -171,7 +172,7 @@ export function PostView({ postId, onBack }: PostViewProps) {
         </div>
         <p className="font-semibold">{likes.length + (isLikedOptimistic && !post.is_liked ? 1 : 0) - (!isLikedOptimistic && post.is_liked ? 1 : 0)} likes</p>
         <p>
-          <button type="button" onClick={() => openProfile(post.author)} className="font-semibold hover:underline">{post.author}</button> {post.caption}
+          <button type="button" onClick={() => openProfile(post.author)} className="font-semibold hover:underline">{post.author}</button> <RichCaption text={post.caption} postId={post.post_id} />
         </p>
 
         <div>

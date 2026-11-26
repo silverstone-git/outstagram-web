@@ -12,6 +12,7 @@ import { categoryKey } from '../types/post';
 import { ThemeToggle } from '../lib/theme';
 import { openPaywall } from '../features/billing/billing';
 import { EditProfileDialog } from './EditProfile';
+import { AccountData } from './AccountData';
 
 interface ProfileProps {
   user: ApiUser;
@@ -261,6 +262,8 @@ function Profile({ user, onLogout, onNavigateToPost, onUserUpdated }: ProfilePro
             </div>
           </TabsContent>
         </Tabs>
+
+        <AccountData username={user.username} onDeleted={onLogout} />
       </div>
     </div>
   );

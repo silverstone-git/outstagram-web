@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   AlertTriangle, Ban, Check, ExternalLink, Eye, FileText, Flag as FlagIcon, Inbox, Loader2, LogOut, Mail,
-  RefreshCw, ScanSearch, Search, Shield, ShieldCheck, Trash2, UserRound, Users, Video,
+  Bomb, RefreshCw, ScanSearch, Search, Shield, ShieldCheck, Trash2, UserRound, Users, Video,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Toaster } from '../../components/ui/sonner';
@@ -69,7 +69,9 @@ function useLoad<T>(fn: () => Promise<T>, deps: unknown[]) {
   const [error, setError] = useState<string | null>(null);
   const reload = useCallback(() => {
     setLoading(true);
-    fn().then((d) => { setData(d); setError(null); }).catch((e) => setError(errMsg(e))).finally(() => setLoading(false));
+    const started = Date.now(); // keep the spinner up long enough to be seen on fast reloads
+    const done = () => window.setTimeout(() => setLoading(false), Math.max(0, 450 - (Date.now() - started)));
+    fn().then((d) => { setData(d); setError(null); }).catch((e) => setError(errMsg(e))).finally(done);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
   useEffect(() => { reload(); }, [reload]);
@@ -383,10 +385,13 @@ function QueueTab({ mail, onUser, refreshOverview }: { mail: boolean; onUser: (i
           <Button size="sm" variant="outline" onClick={scan} disabled={scanning} title="Run the models over posts that were never scanned (20 at a time)">
             {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanSearch className="h-4 w-4" />} Scan backlog
           </Button>
-          <Button size="sm" variant="ghost" onClick={refresh}><RefreshCw className="h-4 w-4" /></Button>
+          <Button size="sm" variant="ghost" onClick={refresh} disabled={loading} title="Refresh" aria-busy={loading}>
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
         </span>
       </div>
       <ErrorBox error={error} />
+      {loading && data && <div role="progressbar" aria-label="Refreshing" className="h-0.5 w-full overflow-hidden rounded bg-primary/20"><div className="h-full w-1/3 animate-[adminbar_1s_ease-in-out_infinite] bg-primary" /></div>}
       {loading && !data && <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />}
       {data && data.items.length === 0 && (
         <div className="rounded-lg border border-dashed p-10 text-center text-muted-foreground">
@@ -493,6 +498,7 @@ function UsersTab({ mail, onUser, initialFilter, version }: { mail: boolean; onU
           </thead>
           <tbody>
             {loading && !data && <tr><td colSpan={8} className="p-6 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></td></tr>}
+            {loading && data && <tr><td colSpan={8} className="p-0"><div role="progressbar" aria-label="Refreshing" className="h-0.5 w-full overflow-hidden rounded bg-primary/20"><div className="h-full w-1/3 animate-[adminbar_1s_ease-in-out_infinite] bg-primary" /></div></td></tr>}
             {data?.users.map((u) => (
               <tr key={u.user_id} className="cursor-pointer border-t hover:bg-muted/30" onClick={() => onUser(u.user_id)}>
                 <td className="p-2">
@@ -699,13 +705,17 @@ function EmailDialog({ open, onClose, u, mail, onSent }: { open: boolean; onClos
 
 function DeleteUserDialog({ open, onClose, u, onDeleted }: { open: boolean; onClose: () => void; u: UserDetail; onDeleted: () => void }) {
   const [confirm, setConfirm] = useState('');
+  const [nuke, setNuke] = useState(false);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { if (open) setConfirm(''); }, [open]);
+  useEffect(() => { if (open) { setConfirm(''); setNuke(false); } }, [open]);
   const go = async () => {
     setBusy(true);
     try {
-      await call(`/admin/users/${u.user_id}/delete`, { method: 'POST', json: { confirm_username: confirm } });
-      toast.success(`@${u.username} deleted`); onClose(); onDeleted();
+      const r = await call<{ posts: number; comments: number; media_files_removed: number }>(`/admin/users/${u.user_id}/delete`,
+        { method: 'POST', json: { confirm_username: confirm, mode: nuke ? 'nuke' : 'account' } });
+      toast.success(nuke ? `@${u.username} nuked: ${r.posts} posts, ${r.comments} comments, ${r.media_files_removed} files gone`
+        : `@${u.username} deleted; ${r.posts} posts and ${r.comments} comments kept as "deleted_user"`);
+      onClose(); onDeleted();
     } catch (e) { toast.error(errMsg(e)); } finally { setBusy(false); }
   };
   return (
@@ -713,13 +723,27 @@ function DeleteUserDialog({ open, onClose, u, onDeleted }: { open: boolean; onCl
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Delete @{u.username} for good?</DialogTitle>
-          <DialogDescription>Removes the account with all its posts, files, comments, likes, follows, exam history and plan. Freezing is usually enough; this can't be undone.</DialogDescription>
+          <DialogDescription>Removes the account, sign-ins, likes, follows, exam history, tutor chats, saved equations, plan and streak. Freezing is usually enough; this can't be undone.</DialogDescription>
         </DialogHeader>
+        <div className="grid gap-2">
+          <button type="button" onClick={() => setNuke(false)}
+            className={`rounded-lg border p-3 text-left text-sm ${!nuke ? 'border-primary bg-primary/10' : 'border-border'}`}>
+            <p className="font-medium">Delete account, keep their posts</p>
+            <p className="text-xs text-muted-foreground">Posts and comments stay up, credited to "deleted_user", so threads keep making sense.</p>
+          </button>
+          <button type="button" onClick={() => setNuke(true)}
+            className={`rounded-lg border p-3 text-left text-sm ${nuke ? 'border-destructive bg-destructive/10' : 'border-border'}`}>
+            <p className="flex items-center gap-1.5 font-medium text-destructive"><Bomb className="h-4 w-4" /> Nuke: delete everything they made</p>
+            <p className="text-xs text-muted-foreground">Also every post, comment and uploaded file (photos, videos, avatar).</p>
+          </button>
+        </div>
         <Label htmlFor="confirm">Type <span className="font-mono">{u.username}</span> to confirm</Label>
         <Input id="confirm" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="off" />
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button variant="destructive" disabled={busy || confirm !== u.username} onClick={go}>{busy && <Loader2 className="h-4 w-4 animate-spin" />} Delete forever</Button>
+          <Button variant="destructive" disabled={busy || confirm !== u.username} onClick={go}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : nuke ? <Bomb className="h-4 w-4" /> : <Trash2 className="h-4 w-4" />} {nuke ? 'Nuke forever' : 'Delete forever'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -761,6 +785,7 @@ function PostsTab({ mail, onUser, version }: { mail: boolean; onUser: (id: numbe
         </span>
       </form>
       <ErrorBox error={error} />
+      {loading && data && <div role="progressbar" aria-label="Refreshing" className="h-0.5 w-full overflow-hidden rounded bg-primary/20"><div className="h-full w-1/3 animate-[adminbar_1s_ease-in-out_infinite] bg-primary" /></div>}
       {loading && !data && <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {data?.posts.map((p) => (
@@ -784,10 +809,11 @@ function PostsTab({ mail, onUser, version }: { mail: boolean; onUser: (id: numbe
 // ---- audit ---------------------------------------------------------------------------------------------
 
 function AuditTab({ onUser, version }: { onUser: (id: number) => void; version: number }) {
-  const { data, error } = useLoad(() => call<{ total: number; actions: AuditEntry[] }>('/admin/audit?limit=200'), [version]);
+  const { data, error, loading } = useLoad(() => call<{ total: number; actions: AuditEntry[] }>('/admin/audit?limit=200'), [version]);
   return (
     <div className="space-y-2">
       <ErrorBox error={error} />
+      {loading && <div role="progressbar" aria-label="Refreshing" className="h-0.5 w-full overflow-hidden rounded bg-primary/20"><div className="h-full w-1/3 animate-[adminbar_1s_ease-in-out_infinite] bg-primary" /></div>}
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-left text-xs uppercase text-muted-foreground">
@@ -882,7 +908,9 @@ function Panel({ me, onSignOut }: { me: Session; onSignOut: () => void }) {
           <span className="font-semibold">Admin</span>
           <span className="hidden text-xs text-muted-foreground sm:inline">{me.email}</span>
           <span className="ml-auto flex items-center gap-1">
-            <Button size="sm" variant="ghost" onClick={bump} title="Refresh"><RefreshCw className="h-4 w-4" /></Button>
+            <Button size="sm" variant="ghost" onClick={bump} title="Refresh" disabled={ov.loading} aria-busy={ov.loading}>
+              <RefreshCw className={`h-4 w-4 ${ov.loading ? 'animate-spin' : ''}`} />{ov.loading && <span className="sr-only">Loading</span>}
+            </Button>
             <ThemeToggle />
             <Button size="sm" variant="ghost" onClick={onSignOut}><LogOut className="h-4 w-4" /> Sign out</Button>
           </span>
