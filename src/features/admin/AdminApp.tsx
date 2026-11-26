@@ -304,6 +304,10 @@ function OverviewTab({ ov, go }: { ov: Overview; go: (tab: string, filter?: stri
             LLM review of text + photos{m.ml_model ? ` (${m.ml_model})` : ': off (OUTSIE_MOD_ML / LITELLM_MASTER_KEY)'}</li>
           <li>{m.vision ? <Check className="mr-1 inline h-4 w-4 text-green-600" /> : <Ban className="mr-1 inline h-4 w-4" />}
             Google Cloud Vision SafeSearch{m.vision ? '' : ': off (OUTSIE_MOD_VISION=1 to turn on, 1,000 images/month free)'}</li>
+          {m.vision && m.vision_usage && (
+            <li className="pl-5">Vision this month: {m.vision_usage.used} / {m.vision_usage.cap} images
+              {m.vision_usage.exhausted ? ' · paused until next month (Flash-Lite still checks photos)' : ` · ${m.vision_usage.remaining} left`}</li>
+          )}
           <li>{m.autoscan ? <Check className="mr-1 inline h-4 w-4 text-green-600" /> : <Ban className="mr-1 inline h-4 w-4" />}
             Scan new posts and comments automatically</li>
           <li>Flags open at score ≥ {Math.round(m.threshold * 100)}%</li>
@@ -833,6 +837,22 @@ function SignIn({ error }: { error: string | null }) {
   );
 }
 
+function VisionBanner({ ov }: { ov: Overview | null }) {
+  const u = ov?.moderation.vision ? ov.moderation.vision_usage : undefined;
+  if (!u || !u.near) return null;
+  return (
+    <div className={`mb-4 flex items-start gap-2 rounded-md border p-3 text-sm ${u.exhausted
+      ? 'border-destructive/50 bg-destructive/10' : 'border-orange-400/50 bg-orange-400/10'}`}>
+      <AlertTriangle className={`mt-0.5 h-4 w-4 shrink-0 ${u.exhausted ? 'text-destructive' : 'text-orange-600'}`} />
+      <span>
+        {u.exhausted
+          ? <>Cloud Vision's free quota for {u.month} is used up ({u.used}/{u.cap} images). It's paused until next month; Gemini Flash-Lite keeps checking photos, so nothing goes unscanned.</>
+          : <>Cloud Vision has used {u.used} of {u.cap} free images this month ({u.remaining} left). After that it pauses and Gemini Flash-Lite checks photos alone.</>}
+      </span>
+    </div>
+  );
+}
+
 function Panel({ me, onSignOut }: { me: Session; onSignOut: () => void }) {
   const [tab, setTab] = useState('overview');
   const [userFilter, setUserFilter] = useState('all');
@@ -869,6 +889,7 @@ function Panel({ me, onSignOut }: { me: Session; onSignOut: () => void }) {
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-4">
+        <VisionBanner ov={ov.data} />
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="mb-4 flex h-auto flex-wrap">
             {tabs.map((t) => (

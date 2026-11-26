@@ -148,7 +148,8 @@ export type Overview = {
   comments: { total: number; new_24h: number };
   likes_24h: number; exams_24h: number; ai_prompts_24h: number; revenue_30d_paise: number;
   queue: { open: number; post?: number; comment?: number; user?: number }; suspicious: number;
-  moderation: { rules: boolean; ml: boolean; ml_model: string | null; vision: boolean; autoscan: boolean; threshold: number };
+  moderation: { rules: boolean; ml: boolean; ml_model: string | null; vision: boolean; autoscan: boolean; threshold: number;
+    vision_usage?: { month: string; used: number; cap: number; remaining: number; exhausted: boolean; near: boolean } };
   mail: boolean; you: string;
 };
 

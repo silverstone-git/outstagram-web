@@ -104,7 +104,8 @@ const adminRoutes = [
   ['GET', /^\/admin\/overview/, { users: { total: 128, new_24h: 6, new_7d: 31, verified: 110, frozen: 2, paid: 9 },
     posts: { total: 540, new_24h: 22, new_7d: 140, unscanned: 12 }, comments: { total: 1900, new_24h: 80 }, likes_24h: 410,
     exams_24h: 57, ai_prompts_24h: 230, revenue_30d_paise: 89100, queue: { open: 3, post: 2, comment: 1 }, suspicious: 1,
-    moderation: { rules: true, ml: true, ml_model: 'gemini-flash-lite', vision: false, autoscan: true, threshold: 0.6 }, mail: true, you: 'admin@example.com' }],
+    moderation: { rules: true, ml: true, ml_model: 'gemini-flash-lite', vision: true, autoscan: true, threshold: 0.6,
+      vision_usage: { month: '2026-11', used: 900, cap: 900, remaining: 0, exhausted: true, near: true } }, mail: true, you: 'admin@example.com' }],
   ['GET', /^\/admin\/moderation\/queue/, { total: 2, items: [
     { kind: 'post', target_id: 'p-spam', score: 0.93, labels: ['scam', 'spam'], sources: ['ml', 'report', 'rules'], gone: false, post: spam,
       user: { user_id: 7, username: 'quickcash99', frozen: false, avatar_url: null, risk: risk7 },
