@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Heart, MessageCircle, Share, MoreVertical, Bookmark, Trophy, BookOpen, GraduationCap } from 'lucide-react';
+import { Heart, MessageCircle, Share, Bookmark, Trophy, BookOpen, GraduationCap } from 'lucide-react';
 import { Card, CardContent, CardHeader } from './ui/card';
 import { Button } from './ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from './ui/avatar';
@@ -10,6 +10,7 @@ import type { Post } from '../services/api';
 import { categoryKey } from '../types/post';
 import { openProfile } from '../lib/nav';
 import { UserSearch } from './UserSearch';
+import { ReportMenu } from './ReportMenu';
 
 // Types
 interface CategoryOption {
@@ -124,9 +125,7 @@ const PostHeader: React.FC<PostHeaderProps> = ({ post }) => (
           </div>
         </div>
       </div>
-      <Button variant="ghost" size="sm" className="text-muted-foreground">
-        <MoreVertical className="w-5 h-5" />
-      </Button>
+      <ReportMenu postId={post.post_id} />
     </div>
   </CardHeader>
 );

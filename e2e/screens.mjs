@@ -43,6 +43,15 @@ const startPractice = async (page) => {
   await page.getByText('Q1', { exact: false }).first().waitFor();
 };
 // Questions are shuffled, so answer whatever type comes up.
+const adminOpen = (after) => async (p) => {
+  await p.evaluate(() => sessionStorage.setItem('outsie_admin_token', JSON.stringify({ token: 'admin-token', email: 'admin@example.com',
+    expires_at: new Date(Date.now() + 7200e3).toISOString() })));
+  await p.goto(ORIGIN + BASE + 'admin/', { waitUntil: 'networkidle' });
+  await p.getByText('Review queue').first().waitFor();
+  if (after) await after(p);
+  await p.waitForTimeout(300);
+};
+const adminTab = (name) => adminOpen(async (p) => { await p.getByRole('tab', { name: new RegExp(`^${name}`) }).click(); await p.waitForLoadState('networkidle'); });
 const answerCurrent = async (page) => {
   if (await page.getByRole('radio').count()) await page.getByRole('radio').nth(1).click();
   else if (await page.getByRole('checkbox').count()) await page.getByRole('checkbox').nth(1).click();
@@ -109,6 +118,15 @@ const screens = [
     await p.getByRole('button', { name: 'Delete comment' }).last().dispatchEvent('click');
     await p.getByText('Delete this comment?').waitFor(); await p.waitForTimeout(300);
   }],
+  ['report-post', true, async (p) => { await nav('Home')(p); await p.getByRole('button', { name: 'More' }).first().click(); await p.getByRole('menuitem', { name: 'Report post' }).click(); await p.getByText('Report this post').waitFor(); }],
+  ['admin-signin', false, async (p) => { await p.goto(ORIGIN + BASE + 'admin/', { waitUntil: 'networkidle' }); await p.getByText('Continue with Google').waitFor(); }],
+  ['admin-overview', false, adminOpen(null)],
+  ['admin-queue', false, adminTab('Review queue')],
+  ['admin-users', false, adminTab('Users')],
+  ['admin-user', false, async (p) => { await adminTab('Users')(p); await p.getByText('@quickcash99').first().click(); await p.getByText('Why it looks suspicious').waitFor(); await p.waitForTimeout(400); }],
+  ['admin-freeze', false, async (p) => { await adminTab('Users')(p); await p.getByRole('button', { name: 'Freeze' }).first().click(); await p.getByText('Notify by email').waitFor(); }],
+  ['admin-posts', false, adminTab('Posts')],
+  ['admin-audit', false, adminTab('Audit log')],
   ['paywall', true, async (p) => { await nav('Exams')(p); await p.getByRole('button', { name: /AI prompts left this hour/ }).click(); await p.getByText('Get Pro · ₹99').waitFor(); await p.waitForTimeout(400); }],
 ];
 

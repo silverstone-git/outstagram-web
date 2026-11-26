@@ -87,7 +87,48 @@ const searchResults = [
 const me = { user_id: 1, username: user.username, fullname: user.fullname, bio: user.bio, email: 'aryan@example.com',
   email_verified: true, verification_required: true, avatar_url: null };
 
+
+// --- admin panel mocks (/admin/) ---
+const adminPost = (id, author, caption, score, labels, extra = {}) => ({
+  post_id: id, caption, post_category: 'Lifestyle', datetime_posted: ago(1), author_user_id: author === 'quickcash99' ? 7 : 3, author,
+  author_frozen: false, author_avatar_url: null, media: [], like_count: 2, comment_count: 1,
+  scan: { score, labels, providers: 'rules,ml', scanned_at: ago(1) }, open_flags: labels.length ? 2 : 0, ...extra });
+const spam = adminPost('p-spam', 'quickcash99', 'BUY FOLLOWERS 💸 crypto giveaway, DM me on telegram https://x.xyz https://y.xyz https://z.xyz', 0.93, ['scam', 'spam']);
+const risk7 = { score: 7, reasons: ['2 open auto-flags', 'reported by 2 users', 'email not confirmed', 'random-looking username'] };
+const adminUser = { user_id: 7, username: 'quickcash99', fullname: 'Quick Cash', email: 'qc99@example.com', avatar_url: null,
+  created_at: ago(1), email_verified: false, frozen: false, frozen_at: null, frozen_reason: null, plan: 'free', posts: 4, comments: 31, risk: risk7 };
+const flag = (id, source, score, labels, note, reporter = null) => ({ id, kind: 'post', target_id: 'p-spam', target_user_id: 7, source,
+  reporter_user_id: reporter ? 9 : null, reporter, labels, score, note, status: 'open', created_at: ago(1), resolved_at: null, resolved_by: null });
+const adminRoutes = [
+  ['POST', /^\/admin\/session/, { token: 'admin-token', email: 'admin@example.com', expires_at: new Date(Date.now() + 7200e3).toISOString() }],
+  ['GET', /^\/admin\/overview/, { users: { total: 128, new_24h: 6, new_7d: 31, verified: 110, frozen: 2, paid: 9 },
+    posts: { total: 540, new_24h: 22, new_7d: 140, unscanned: 12 }, comments: { total: 1900, new_24h: 80 }, likes_24h: 410,
+    exams_24h: 57, ai_prompts_24h: 230, revenue_30d_paise: 89100, queue: { open: 3, post: 2, comment: 1 }, suspicious: 1,
+    moderation: { rules: true, ml: true, ml_model: 'gemini-flash-lite', vision: false, autoscan: true, threshold: 0.6 }, mail: true, you: 'admin@example.com' }],
+  ['GET', /^\/admin\/moderation\/queue/, { total: 2, items: [
+    { kind: 'post', target_id: 'p-spam', score: 0.93, labels: ['scam', 'spam'], sources: ['ml', 'report', 'rules'], gone: false, post: spam,
+      user: { user_id: 7, username: 'quickcash99', frozen: false, avatar_url: null, risk: risk7 },
+      flags: [flag(1, 'ml', 0.93, ['scam'], 'Selling followers and crypto scheme'), flag(2, 'rules', 1, ['scam', 'spam'], '3 links; scam words: buy followers, crypto, giveaway, telegram'),
+        flag(3, 'report', 0.5, ['spam'], 'spam: keeps posting this', 'meera')] },
+    { kind: 'comment', target_id: '42', score: 0.81, labels: ['harassment'], sources: ['ml'], gone: false,
+      comment: { comment_id: 42, post_id: 'p1', content: 'nobody likes you, just quit', datetime_commented: ago(2) },
+      user: { user_id: 3, username: 'troll_acc', frozen: false, avatar_url: null, risk: { score: 2, reasons: ['1 open auto-flag'] } },
+      flags: [{ ...flag(4, 'ml', 0.81, ['harassment'], 'Insulting another user'), kind: 'comment', target_id: '42' }] },
+  ] }],
+  ['GET', /^\/admin\/users\/\d+/, { ...adminUser, bio: 'earn daily', date_of_birth: '2001-01-01', email_verified_at: null, followers: 0, following: 212,
+    plan_valid_until: null, posts_recent: [spam], comments_recent: [{ comment_id: 50, post_id: 'p1', content: 'check my bio 💸', datetime_commented: ago(1) }],
+    payments: [], flags: [flag(1, 'ml', 0.93, ['scam'], 'Selling followers')], actions: [], ai_prompts_24h: 0, exam_attempts: 0, active_sessions: 2 }],
+  ['GET', /^\/admin\/users/, { total: 2, users: [adminUser, { ...adminUser, user_id: 1, username: 'aryan', fullname: 'Aryan Demo', email: 'aryan@example.com',
+    email_verified: true, plan: 'pro', posts: 12, comments: 40, created_at: ago(40), risk: { score: 0, reasons: [] } }] }],
+  ['GET', /^\/admin\/posts/, { total: 2, posts: [spam, adminPost('p-ok', 'aryan', 'Finally cracked the harmonic oscillator ladder operators', 0.04, [])] }],
+  ['GET', /^\/admin\/audit/, { total: 2, actions: [
+    { id: 2, admin: 'admin@example.com', action: 'delete_post', target_kind: 'post', target_id: 'p-old', detail: { reason: 'spam', author: 'quickcash99' }, created_at: ago(1) },
+    { id: 1, admin: 'admin@example.com', action: 'freeze', target_kind: 'user', target_id: '5', detail: { reason: 'scam ring', username: 'freecoins' }, created_at: ago(3) }] }],
+  ['POST', /^\/posts\/[^/]+\/report/, { reported: true }],
+];
+
 export const routes = [
+  ...adminRoutes,
   ['POST', /^\/auth\/email\/link/, { access_token: 'test-token', token_type: 'bearer', user, created: false, next: null }],
   ['POST', /^\/exam-attempts\/[^/]+\/chat\/stream/, streamReply],
   ['GET', /^\/me\/stats/, stats],

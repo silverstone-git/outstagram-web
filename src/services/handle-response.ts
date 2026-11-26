@@ -7,6 +7,8 @@ const dispatchSessionExpiredEvent = () => {
   window.dispatchEvent(event);
 };
 
+let frozenShown = false;
+
 export async function handleResponse<T>(response: Response): Promise<T | null> {
   if (response.status === 401) {
     OutstagramAPI.removeAuthToken();
@@ -27,6 +29,14 @@ export async function handleResponse<T>(response: Response): Promise<T | null> {
       if (typeof d === 'string') message = d;
       else if (d?.message) message = d.message;
       if (d?.code === 'email_unverified') window.dispatchEvent(new CustomEvent('emailUnverified'));
+      // Frozen by an admin: sign out and say why (a sign-in attempt just shows the message in the form).
+      if (d?.code === 'account_frozen' && OutstagramAPI.getAuthToken() && !frozenShown) {
+        frozenShown = true;
+        OutstagramAPI.removeAuthToken();
+        localStorage.removeItem('outstagram_user');
+        window.alert(message);
+        window.location.reload();
+      }
     } catch { /* not JSON */ }
     throw new Error(message);
   }

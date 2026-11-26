@@ -198,7 +198,7 @@ export class UploadTooLargeError extends Error {}
 
 // API service class
 export class OutstagramAPI {
-  private static getAuthToken(): string | undefined {
+  public static getAuthToken(): string | undefined {
     return Cookies.get('outstagram_token');
   }
 
@@ -646,6 +646,16 @@ export class OutstagramAPI {
     });
 
     return handleResponse<Post[]>(response);
+  }
+
+  /** Report a post to the admins (it lands in the admin review queue). */
+  static async reportPost(postId: string, reason: string, note?: string): Promise<void> {
+    const response = await fetchWithHandling(`${API_BASE_URL}/posts/${encodeURIComponent(postId)}/report`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ reason, note }),
+    });
+    await handleResponse<unknown>(response);
   }
 
   static async likePost(postId: string): Promise<Like | null> {
