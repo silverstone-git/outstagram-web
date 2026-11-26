@@ -73,6 +73,12 @@ The **Exams** tab (`src/features/exams/`) is the Pariksha exam engine, built int
 - `examApi.ts`: `/exam-attempts`, `/exam-attempts/{id}/chat`, `/ai/quota`, `/pariksha`.
 - `Latex.tsx`: KaTeX rendering, copied from pariksha.
 
+## Where it runs
+
+- **Production:** Vercel, https://outstagram.aryan.cfd, deployed automatically from `main` (base `/`, API `https://outsie.aryan.cfd`). It is also the prod Supabase Site URL.
+- **Staging preview:** https://aryan.cfd/outstagram/ on the dev box (nginx), talking to `outsie-staging`; published by hand with `scripts/preview.sh deploy`.
+- `public/.well-known/assetlinks.json` lets the Android app (`com.cyto.outstagram`, `.staging`) open this site's share and sign-in links (App Links). aryan.cfd serves its own copy from `/home/cyto/portfolio/.well-known/`.
+
 ## CI, screenshots and previews
 
 Nothing needs to be built locally (the dev server has very little RAM). Every push runs `.github/workflows/ci.yml`:
@@ -121,3 +127,7 @@ We welcome contributions to Froutstagram! To ensure a smooth development process
 ## Public pages
 
 Signed-out visitors see a landing page (`src/features/public/`). `/pricing`, `/terms`, `/privacy`, `/refunds` and `/contact` are real URLs on any static host: the build copies `index.html` into each folder and the app renders the page from the pathname. Prices come from outsie's public `GET /billing/plans`; contact details live in `src/features/public/routes.ts`.
+
+The same trick gives real URLs to:
+- **Share links** `/p/?id=<post>` and `/u/?name=<user>`. The feed's share icon, the post page and profiles share them through `src/lib/share.ts` (system share sheet, else copy). They use the page's own origin, so prod shares `outstagram.aryan.cfd` and the preview shares `aryan.cfd/outstagram`.
+- **Magic links** `/signin/?h=<token hash>` from the code email (`src/components/EmailLinkPage.tsx`). The page waits for a tap (mail scanners open links on their own), then calls `POST /auth/email/link`. Forgot-password links then ask for a new password; change-email links confirm the change. It also handles Supabase's default `#access_token=` link and `/?h=` on the home page (Supabase's Site URL fallback).
