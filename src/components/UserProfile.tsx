@@ -8,7 +8,7 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 import { OutstagramAPI, type FollowUser, type Post, type UserProfile } from '../services/api';
 import { categoryKey } from '../types/post';
 import { openProfile } from '../lib/nav';
-import { profileHref } from '../features/public/routes';
+import { shareProfile } from '../lib/share';
 
 interface Props {
   username: string;
@@ -65,13 +65,7 @@ export function UserProfileView({ username, onBack, onNavigateToPost }: Props) {
     }
   };
 
-  const share = async () => {
-    const url = profileHref(username);
-    try {
-      if (navigator.share) await navigator.share({ title: `@${username} on Outstagram`, url });
-      else { await navigator.clipboard.writeText(url); toast.success('Link copied'); }
-    } catch { /* cancelled */ }
-  };
+  const share = () => shareProfile(username);
 
   const f = profile?.you_follow_them ?? 0;
   return (
