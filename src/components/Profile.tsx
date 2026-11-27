@@ -77,7 +77,7 @@ function Profile({ user, onLogout, onNavigateToPost, onUserUpdated }: ProfilePro
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="sticky top-0 bg-card/80 backdrop-blur-md border-b border-border p-4 z-10">
-        <div className="max-w-md mx-auto flex items-center justify-between">
+        <div className="max-w-md md:max-w-4xl mx-auto flex items-center justify-between">
           <h1 className="min-w-0 truncate text-xl font-bold text-card-foreground">@{user.username}</h1>
           <div className="flex shrink-0 items-center gap-1">
             <button type="button" onClick={() => openPaywall({ code: 'manual' })} aria-label="Plans and Pro"
@@ -98,12 +98,12 @@ function Profile({ user, onLogout, onNavigateToPost, onUserUpdated }: ProfilePro
         </div>
       </div>
 
-      <div className="max-w-md mx-auto p-4 space-y-6">
+      <div className="max-w-md md:max-w-4xl mx-auto p-4 md:p-8 space-y-6">
         {/* Profile Header */}
         <div className="text-center space-y-4">
           <div className="relative inline-block">
             <label className="cursor-pointer" aria-label="Change profile photo">
-              <Avatar className={`w-24 h-24 ring-4 ring-primary/30 ${photoBusy ? 'opacity-50' : ''}`}>
+              <Avatar className={`w-24 h-24 md:w-36 md:h-36 ring-4 ring-primary/30 ${photoBusy ? 'opacity-50' : ''}`}>
                 <AvatarImage src={photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} />
                 <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
@@ -212,7 +212,7 @@ function Profile({ user, onLogout, onNavigateToPost, onUserUpdated }: ProfilePro
                 <p className="text-muted-foreground text-sm">Loading posts...</p>
               </div>
             ) : userPosts.length > 0 ? (
-              <div className="grid grid-cols-3 gap-1">
+              <div className="grid grid-cols-3 gap-1 md:gap-3">
                 {userPosts.map((post) => (
                   <div key={post.post_id} className="aspect-square overflow-hidden rounded-lg relative cursor-pointer" onClick={() => onNavigateToPost(post.post_id)}>
                     {post.media_urls && post.media_urls.length > 0 ? (

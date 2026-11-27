@@ -131,7 +131,7 @@ const PostHeader: React.FC<PostHeaderProps> = ({ post }) => (
           </div>
         </div>
       </div>
-      {post.author_user_id !== myId() && <ReportMenu postId={post.post_id} />}
+      <ReportMenu postId={post.post_id} mine={post.author_user_id === myId()} />
     </div>
   </CardHeader>
 );
@@ -282,6 +282,11 @@ function Feed() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  useEffect(() => {
+    const gone = (e: Event) => setPosts((ps) => ps.filter((p) => p.post_id !== (e as CustomEvent<string>).detail));
+    window.addEventListener('postdeleted', gone);
+    return () => window.removeEventListener('postdeleted', gone);
+  }, []);
 
   const loadFeed = useCallback(async (page: number = 1) => {
     try {
@@ -359,7 +364,7 @@ function Feed() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 bg-card/80 backdrop-blur-md border-b border-border p-4 z-10">
-        <div className="max-w-md mx-auto space-y-3">
+        <div className="max-w-md md:max-w-xl mx-auto space-y-3">
           <h1 className="text-xl font-bold text-primary">✨ Your Feed</h1>
           <UserSearch />
           <CategoryFilter 
@@ -371,7 +376,7 @@ function Feed() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-md mx-auto space-y-4 p-4">
+      <main className="max-w-md md:max-w-xl mx-auto space-y-4 p-4 md:py-8">
         {isInitialLoading && <LoadingState />}
 
         {posts.map((post) => (

@@ -126,6 +126,7 @@ const adminRoutes = [
     { id: 2, admin: 'admin@example.com', action: 'delete_post', target_kind: 'post', target_id: 'p-old', detail: { reason: 'spam', author: 'quickcash99' }, created_at: ago(1) },
     { id: 1, admin: 'admin@example.com', action: 'freeze', target_kind: 'user', target_id: '5', detail: { reason: 'scam ring', username: 'freecoins' }, created_at: ago(3) }] }],
   ['POST', /^\/posts\/[^/]+\/report/, { reported: true }],
+  ['DELETE', /^\/posts\/[^/]+$/, { deleted: true }],
 ];
 
 export const routes = [

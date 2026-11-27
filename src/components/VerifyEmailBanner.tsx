@@ -39,7 +39,7 @@ export function VerifyEmailBanner() {
 
   if (!me || me.email_verified || me.verification_required === false) return null;
   return (
-    <div className="mx-auto max-w-md px-4 pt-4">
+    <div className="mx-auto max-w-md md:max-w-4xl px-4 pt-4">
       <div className="rounded-xl border border-destructive/60 bg-destructive/10 p-3 text-sm">
         <div className="flex items-start gap-3">
           <MailWarning className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />

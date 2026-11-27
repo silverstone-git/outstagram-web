@@ -881,6 +881,15 @@ export class OutstagramAPI {
     return (await handleResponse<Me>(r))!;
   }
 
+  /** Delete your own post with its comments, likes and files (DELETE /posts/{id}, author only). */
+  static async deletePost(postId: string): Promise<void> {
+    const r = await fetchWithHandling(`${API_BASE_URL}/posts/${encodeURIComponent(postId)}`, {
+      method: 'DELETE', headers: this.getAuthHeaders(),
+    });
+    await handleResponse(r);
+    window.dispatchEvent(new CustomEvent('postdeleted', { detail: postId }));
+  }
+
   /** Delete a comment: allowed for its author and for the post's author. */
   static async deleteComment(postId: string, commentId: number): Promise<void> {
     const r = await fetchWithHandling(`${API_BASE_URL}/posts/${encodeURIComponent(postId)}/comments/${commentId}`, {
