@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Home, User, Plus, Search, GraduationCap } from 'lucide-react';
+import { Home, User, Plus, Search, GraduationCap, Crown } from 'lucide-react';
 import Cookies from 'js-cookie';
 import { Login } from './components/Login';
 import { VerifyEmailBanner } from './components/VerifyEmailBanner';
@@ -11,9 +11,7 @@ import { PostView } from './components/PostView';
 import { SessionExpiredDialog } from './components/SessionExpiredDialog';
 import { SessionExpiredProvider, useSessionExpired } from './context/SessionExpiredContext';
 import { Toaster } from './components/ui/sonner';
-import { toast } from 'sonner';
 import { ExamsTab } from './features/exams/ExamsTab';
-import type { ExamResult } from './features/exams/types';
 import { Paywall } from './features/billing/Paywall';
 import { Landing } from './features/public/Landing';
 import { PolicyPage } from './features/public/PolicyPages';
@@ -24,7 +22,9 @@ import { UserProfileView } from './components/UserProfile';
 import { onOpenPost, onOpenProfile } from './lib/nav';
 import type { PostCategory } from './types/post';
 import { OutstagramAPI } from './services/api';
-import { BrandMark } from './components/Brand';
+import { BrandLogo, BrandMark } from './components/Brand';
+import { ThemeToggle } from './lib/theme';
+import { openPaywall } from './features/billing/billing';
 import type { User as ApiUser } from './services/api';
 
 const LoadingSpinner = () => (
@@ -50,21 +50,18 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<ApiUser | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(() => sharedPostId());
   const [composeCategory, setComposeCategory] = useState<PostCategory | undefined>(undefined);
-  const compose = (c: PostCategory) => { setComposeCategory(c); setCurrentScreen('upload'); };
+  const compose = (c: PostCategory) => { setComposeDraft(undefined); setComposeCategory(c); setCurrentScreen('upload'); };
   const manageTutorHistory = () => {
     setCurrentScreen('exams');
     window.setTimeout(() => document.getElementById('tutor-history')?.scrollIntoView({ behavior: 'smooth' }), 400);
   };
 
-  const shareExamResult = async (result: ExamResult, maxScore: number) => {
-    const caption = `📊 ${result.examName}: ${Number(result.score.toFixed(2))}/${Number(maxScore.toFixed(2))} ` +
-      `(${result.correctAnswers}/${result.totalQuestions} correct, ${Math.round(result.accuracy)}% accuracy) #ExamPrep #Pariksha`;
-    try {
-      await OutstagramAPI.createPost({ media_urls: [], highlighted_by_author: false, caption, post_category: 'Exam Result' });
-      toast.success('Shared to your feed');
-    } catch {
-      toast.error('Could not share your result');
-    }
+  // "Post to feed" on the exam result card: the composer opens with the card and caption (like the app)
+  const [composeDraft, setComposeDraft] = useState<{ files: File[]; caption: string } | undefined>(undefined);
+  const shareExamResult = (card: File, caption: string) => {
+    setComposeDraft({ files: [card], caption });
+    setComposeCategory('exam_result');
+    setCurrentScreen('upload');
   };
 
   useEffect(() => {
@@ -160,7 +157,7 @@ export default function App() {
           return <Profile user={currentUser} onLogout={handleLogout} onNavigateToPost={handleNavigateToPost}
             onUserUpdated={(u) => { setCurrentUser(u); localStorage.setItem('outstagram_user', JSON.stringify(u)); }} />;
         case 'upload':
-          return <UploadPost key={composeCategory ?? 'default'} user={currentUser} initialCategory={composeCategory} />;
+          return <UploadPost key={`${composeCategory ?? 'default'}:${composeDraft?.caption ?? ''}`} user={currentUser} initialCategory={composeCategory} draft={composeDraft} />;
         case 'postView':
           return <PostView postId={selectedPostId!} onBack={() => {
             leaveSharedLink();
@@ -217,62 +214,64 @@ export default function App() {
       );
     }
 
+    const newPost = () => { setComposeDraft(undefined); setComposeCategory(undefined); setCurrentScreen('upload'); };
+    const nav: { key: Screen; label: string; icon: typeof Home; go: () => void; accent?: boolean }[] = [
+      { key: 'dashboard', label: 'Home', icon: Home, go: () => setCurrentScreen('dashboard') },
+      { key: 'feed', label: 'Explore', icon: Search, go: () => setCurrentScreen('feed') },
+      { key: 'exams', label: 'Exams', icon: GraduationCap, go: () => setCurrentScreen('exams') },
+      { key: 'upload', label: 'Create', icon: Plus, go: newPost, accent: true },
+      { key: 'profile', label: 'Profile', icon: User, go: () => setCurrentScreen('profile') },
+    ];
+    const active = (k: Screen) => currentScreen === k;
+
     return (
       <div className="min-h-screen bg-background text-foreground">
+        {/* Side navigation on tablets and desktops (icons, labels from lg), like Instagram's web app */}
+        {!immersive && (
+          <nav aria-label="Main" className="hidden md:flex fixed inset-y-0 left-0 z-30 w-20 lg:w-60 flex-col border-r border-border bg-card px-3 py-6">
+            <button type="button" onClick={() => setCurrentScreen('dashboard')} aria-label="Outstagram home"
+              className="mb-8 flex items-center justify-center lg:justify-start lg:px-3">
+              {/* wrappers: BrandLogo sets its own inline-flex, which would beat a `hidden` on it */}
+              <span className="lg:hidden"><BrandMark className="h-8 w-8" /></span>
+              <span className="hidden lg:block"><BrandLogo size="sm" /></span>
+            </button>
+            <div className="flex flex-1 flex-col gap-1">
+              {nav.map((n) => (
+                <button key={n.key} type="button" onClick={n.go} aria-label={n.key === 'upload' ? 'New post' : n.label} title={n.label}
+                  aria-current={active(n.key) ? 'page' : undefined}
+                  className={`group flex items-center justify-center lg:justify-start gap-4 rounded-xl p-3 transition-colors hover:bg-secondary ${
+                    active(n.key) ? (n.accent ? 'text-accent font-semibold' : 'text-primary font-semibold') : 'text-foreground'}`}>
+                  <n.icon className={`h-6 w-6 shrink-0 transition-transform group-hover:scale-110 ${active(n.key) ? 'stroke-[2.5]' : ''}`} />
+                  <span className="hidden lg:inline text-[15px]">{n.label}</span>
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-col gap-1">
+              <button type="button" onClick={() => openPaywall({ code: 'manual' })} aria-label="Plans" title="Plans"
+                className="group flex items-center justify-center lg:justify-start gap-4 rounded-xl p-3 text-foreground hover:bg-secondary">
+                <Crown className="h-6 w-6 shrink-0 transition-transform group-hover:scale-110" />
+                <span className="hidden lg:inline text-[15px]">Plans</span>
+              </button>
+              <div className="flex justify-center lg:justify-start lg:px-1"><ThemeToggle /></div>
+            </div>
+          </nav>
+        )}
+
         {/* Main Content */}
-        <div className={immersive ? '' : 'pb-20'}>
+        <div className={immersive ? '' : 'pb-20 md:pb-0 md:pl-20 lg:pl-60'}>
           {!immersive && <VerifyEmailBanner />}
           {renderScreen()}
         </div>
 
-        {/* Bottom Navigation */}
-        <div className={`fixed bottom-0 left-0 right-0 bg-card border-t border-border px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] ${immersive ? 'hidden' : ''}`}>
+        {/* Bottom Navigation (phones) */}
+        <div className={`md:hidden fixed bottom-0 left-0 right-0 z-30 bg-card border-t border-border px-4 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] ${immersive ? 'hidden' : ''}`}>
           <div className="flex justify-around items-center max-w-md mx-auto">
-            <button
-              onClick={() => setCurrentScreen('dashboard')}
-              aria-label="Home"
-              className={`p-3 transition-colors ${
-                currentScreen === 'dashboard' ? 'text-primary' : 'text-muted-foreground'
-              }`}
-            >
-              <Home className="w-6 h-6" />
-            </button>
-            <button
-              onClick={() => setCurrentScreen('feed')}
-              aria-label="Explore"
-              className={`p-3 transition-colors ${
-                currentScreen === 'feed' ? 'text-primary' : 'text-muted-foreground'
-              }`}
-            >
-              <Search className="w-6 h-6" />
-            </button>
-            <button
-              onClick={() => setCurrentScreen('exams')}
-              aria-label="Exams"
-              className={`p-3 transition-colors ${
-                currentScreen === 'exams' ? 'text-primary' : 'text-muted-foreground'
-              }`}
-            >
-              <GraduationCap className="w-6 h-6" />
-            </button>
-            <button
-              onClick={() => { setComposeCategory(undefined); setCurrentScreen('upload'); }}
-              aria-label="New post"
-              className={`p-3 transition-colors ${
-                currentScreen === 'upload' ? 'text-accent' : 'text-muted-foreground'
-              }`}
-            >
-              <Plus className="w-6 h-6" />
-            </button>
-            <button
-              onClick={() => setCurrentScreen('profile')}
-              aria-label="Profile"
-              className={`p-3 transition-colors ${
-                currentScreen === 'profile' ? 'text-primary' : 'text-muted-foreground'
-              }`}
-            >
-              <User className="w-6 h-6" />
-            </button>
+            {nav.map((n) => (
+              <button key={n.key} type="button" onClick={n.go} aria-label={n.key === 'upload' ? 'New post' : n.label}
+                className={`p-3 transition-colors ${active(n.key) ? (n.accent ? 'text-accent' : 'text-primary') : 'text-muted-foreground'}`}>
+                <n.icon className="w-6 h-6" />
+              </button>
+            ))}
           </div>
         </div>
         <Toaster />

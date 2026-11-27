@@ -9,6 +9,7 @@ import type { ExamResult, ShuffledQuestion, UserAnswer } from './types';
 import { formatTime } from './engine';
 import type { FavoriteEquation, Quota } from './examApi';
 import { EquationZone, focusEquation, type EquationSource } from './EquationPicker';
+import { ResultCardDialog } from './ResultCard';
 
 type Filter = 'all' | 'wrong' | 'skipped' | 'flagged';
 const attempted = (a?: UserAnswer) =>
@@ -19,7 +20,7 @@ function correctText(q: ShuffledQuestion): string {
   return '';
 }
 
-export function ExamResults({ result, maxScore, attemptId, quota, onQuota, onBack, onRetake, onShare, openChatFor, focus }: {
+export function ExamResults({ result, maxScore, attemptId, quota, onQuota, onBack, onRetake, onPostCard, openChatFor, focus }: {
   result: ExamResult;
   maxScore: number;
   attemptId: string | null;
@@ -27,13 +28,14 @@ export function ExamResults({ result, maxScore, attemptId, quota, onQuota, onBac
   onQuota: (q: Quota | null) => void;
   onBack: () => void;
   onRetake?: () => void;
-  onShare?: () => void;
+  onPostCard?: (card: File, caption: string) => void; // "Post to feed" from the share card
   openChatFor?: string; // question id: open its tutor chat right away (from tutor history)
   focus?: FavoriteEquation | null; // from "Saved equations": open where it was saved and flash it
 }) {
   const [filter, setFilter] = useState<Filter>('all');
   const [open, setOpen] = useState<string | null>(null);
   const [chatFor, setChatFor] = useState<ShuffledQuestion | null>(null);
+  const [sharing, setSharing] = useState(false);
   const byId = useMemo(() => new Map(result.answers.map((a) => [a.questionId, a])), [result]);
   useEffect(() => {
     if (!openChatFor) return;
@@ -60,7 +62,7 @@ export function ExamResults({ result, maxScore, attemptId, quota, onQuota, onBac
         <div className="max-w-3xl mx-auto flex items-center gap-2 px-3 py-2">
           <Button variant="ghost" size="icon" aria-label="Back to exams" onClick={onBack}><ArrowLeft className="w-5 h-5" /></Button>
           <p className="min-w-0 flex-1 text-sm font-medium truncate">{result.examName}</p>
-          {onShare && <Button size="sm" variant="secondary" onClick={onShare}><Share2 className="w-4 h-4" /> Share</Button>}
+          <Button size="sm" variant="secondary" onClick={() => setSharing(true)}><Share2 className="w-4 h-4" /> Share</Button>
         </div>
       </header>
 
@@ -170,6 +172,8 @@ export function ExamResults({ result, maxScore, attemptId, quota, onQuota, onBac
             focus={focus?.source === 'tutor' || (focus && !focus.source && focus.question_id === chatFor.id) ? { messageId: focus.message_id, latex: focus.latex } : null} />}
         </DrawerContent>
       </Drawer>
+      <ResultCardDialog open={sharing} onOpenChange={setSharing} result={result} maxScore={maxScore}
+        onPost={onPostCard ? (f, c) => { setSharing(false); onPostCard(f, c); } : undefined} />
     </div>
   );
 }

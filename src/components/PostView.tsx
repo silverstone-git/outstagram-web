@@ -125,16 +125,17 @@ export function PostView({ postId, onBack }: PostViewProps) {
   }
 
   return (
-    <div className="max-w-md mx-auto">
-      <div className="sticky top-0 p-4 z-10 flex items-center">
+    <div className="max-w-md lg:max-w-6xl mx-auto lg:px-6">
+      <div className="sticky top-0 p-4 z-10 flex items-center bg-background/80 backdrop-blur-md">
         <Button variant="ghost" size="icon" onClick={onBack}>
           <ArrowLeft className="w-6 h-6" />
         </Button>
         <h1 className="text-xl font-bold ml-4">Post</h1>
-        {post.author_user_id !== myUserId() && <div className="ml-auto"><ReportMenu postId={post.post_id} /></div>}
+        <div className="ml-auto"><ReportMenu postId={post.post_id} mine={post.author_user_id === myUserId()} onDeleted={onBack} /></div>
       </div>
 
-      <Card className="m-4">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:gap-6 lg:items-start">
+      <Card className="m-4 lg:mx-0 lg:mt-2 overflow-hidden">
         <CardContent className="p-0">
           {post.media_urls && post.media_urls.length > 1 ? (
             <Carousel>
@@ -158,7 +159,7 @@ export function PostView({ postId, onBack }: PostViewProps) {
         </CardContent>
       </Card>
 
-      <div className="px-4 pb-4 space-y-4">
+      <div className="px-4 pb-4 space-y-4 lg:px-0 lg:pt-2 lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)] lg:overflow-y-auto">
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="icon" onClick={handleLike}>
             <Heart className={`w-6 h-6 ${isLikedOptimistic ? 'text-red-500 fill-current' : ''}`} />
@@ -220,6 +221,7 @@ export function PostView({ postId, onBack }: PostViewProps) {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+      </div>
       </div>
     </div>
   );

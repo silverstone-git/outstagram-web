@@ -72,14 +72,14 @@ export function UserProfileView({ username, onBack, onNavigateToPost }: Props) {
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 bg-card/80 backdrop-blur-md border-b border-border p-3 z-10">
-        <div className="max-w-md mx-auto flex items-center gap-2">
+        <div className="max-w-md md:max-w-4xl mx-auto flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={onBack} aria-label="Back"><ArrowLeft className="w-5 h-5" /></Button>
           <h1 className="min-w-0 flex-1 truncate text-lg font-bold">@{username}</h1>
           <Button variant="ghost" size="icon" onClick={share} aria-label="Share profile"><Share2 className="w-5 h-5" /></Button>
         </div>
       </div>
 
-      <div className="max-w-md mx-auto p-4 space-y-6">
+      <div className="max-w-md md:max-w-4xl mx-auto p-4 md:p-8 space-y-6">
         {error ? (
           <p className="py-16 text-center text-muted-foreground">{error}</p>
         ) : !profile ? (
@@ -127,7 +127,7 @@ export function UserProfileView({ username, onBack, onNavigateToPost }: Props) {
             ) : posts.length === 0 ? (
               <p className="py-10 text-center text-muted-foreground">No posts yet</p>
             ) : (
-              <div className="grid grid-cols-3 gap-1">
+              <div className="grid grid-cols-3 gap-1 md:gap-3">
                 {posts.map((post) => (
                   <button type="button" key={post.post_id} onClick={() => onNavigateToPost(post.post_id)}
                     className="aspect-square overflow-hidden rounded-lg">

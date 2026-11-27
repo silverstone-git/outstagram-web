@@ -49,8 +49,8 @@ function Dashboard({ user, onNavigateToPost, onOpenExams, onCompose }: Dashboard
   const first = (user.fullname || user.username || '').split(' ')[0];
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-md mx-auto space-y-6">
+    <div className="min-h-screen bg-background p-4 md:p-8">
+      <div className="max-w-md md:max-w-2xl lg:max-w-5xl mx-auto space-y-6">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-2xl font-bold text-primary break-words">Welcome, {first}! 🎓</h1>
@@ -66,7 +66,7 @@ function Dashboard({ user, onNavigateToPost, onOpenExams, onCompose }: Dashboard
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {cards.map((c) => (
             <Card key={c.label} className="bg-card border-border">
               <CardContent className="p-3">
@@ -81,6 +81,8 @@ function Dashboard({ user, onNavigateToPost, onOpenExams, onCompose }: Dashboard
           ))}
         </div>
 
+        <div className="space-y-6 lg:space-y-0 lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start">
+        <div className="space-y-6 lg:col-span-2">
         <Card className="bg-gradient-to-r from-primary/20 to-accent/20 border-primary/30">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-card-foreground">
@@ -113,14 +115,14 @@ function Dashboard({ user, onNavigateToPost, onOpenExams, onCompose }: Dashboard
           <CardHeader>
             <CardTitle className="text-card-foreground">Your recent posts</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 md:space-y-0 md:grid md:grid-cols-2 md:gap-2">
             {isLoading ? (
-              <div className="text-center py-4">
+              <div className="text-center py-4 md:col-span-2">
                 <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
                 <p className="text-muted-foreground text-sm">Loading your posts...</p>
               </div>
             ) : recent.length > 0 ? (
-              recent.slice(0, 3).map((post) => {
+              recent.slice(0, 4).map((post) => {
                 const cat = categoryKey(post.post_category);
                 return (
                   <button type="button" key={post.post_id} className="w-full text-left flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50" onClick={() => onNavigateToPost(post.post_id)}>
@@ -148,7 +150,7 @@ function Dashboard({ user, onNavigateToPost, onOpenExams, onCompose }: Dashboard
                 );
               })
             ) : (
-              <div className="text-center py-6">
+              <div className="text-center py-6 md:col-span-2">
                 <div className="text-4xl mb-2">📚</div>
                 <p className="text-muted-foreground text-sm">No posts yet! Start sharing your study journey.</p>
               </div>
@@ -156,7 +158,9 @@ function Dashboard({ user, onNavigateToPost, onOpenExams, onCompose }: Dashboard
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-border">
+        </div>
+
+        <Card className="bg-card border-border lg:sticky lg:top-8">
           <CardHeader>
             <CardTitle className="text-card-foreground">Trending this month 🔥</CardTitle>
           </CardHeader>
@@ -177,6 +181,7 @@ function Dashboard({ user, onNavigateToPost, onOpenExams, onCompose }: Dashboard
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

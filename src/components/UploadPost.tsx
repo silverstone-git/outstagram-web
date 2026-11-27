@@ -19,6 +19,8 @@ import type { PostCategory } from '../types/post';
 interface UploadPostProps {
   user: ApiUser;
   initialCategory?: PostCategory;
+  /** Prefilled post (the exam result card's "Post to feed"). */
+  draft?: { files: File[]; caption: string };
 }
 
 interface FilePreview {
@@ -31,10 +33,11 @@ const MAX_MEDIA = 4;
 /** Videos pass through the API here, and Cloud Run caps a request at 32 MB (the app uploads straight to storage). */
 const WEB_VIDEO_MAX = 30_000_000;
 
-function UploadPost({ user, initialCategory }: UploadPostProps) {
-  const [caption, setCaption] = useState('');
-  const [previews, setPreviews] = useState<FilePreview[]>([]);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+function UploadPost({ user, initialCategory, draft }: UploadPostProps) {
+  const [caption, setCaption] = useState(draft?.caption ?? '');
+  const [previews, setPreviews] = useState<FilePreview[]>(() =>
+    (draft?.files ?? []).map((f) => ({ url: URL.createObjectURL(f), type: f.type.startsWith('video/') ? 'video' : 'image' })));
+  const [selectedFiles, setSelectedFiles] = useState<File[]>(draft?.files ?? []);
   const [hashtags, setHashtags] = useState('');
   const [location, setLocation] = useState('');
   const [postCategory, setPostCategory] = useState<PostCategory>(initialCategory ?? "academic");
@@ -201,7 +204,7 @@ function UploadPost({ user, initialCategory }: UploadPostProps) {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="sticky top-0 bg-card/80 backdrop-blur-md border-b border-border p-4 z-10">
-        <div className="max-w-md mx-auto flex items-center justify-between">
+        <div className="max-w-md lg:max-w-5xl mx-auto flex items-center justify-between">
           <h1 className="text-xl font-bold text-primary">✨ Create Post</h1>
           <Button 
             onClick={handleShare}
@@ -213,7 +216,8 @@ function UploadPost({ user, initialCategory }: UploadPostProps) {
         </div>
       </div>
 
-      <div className="max-w-md mx-auto p-4 space-y-6">
+      {/* lg: media on the left (sticky), everything else in the right column */}
+      <div className="max-w-md lg:max-w-5xl mx-auto p-4 lg:p-8 space-y-6 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-x-8 lg:gap-y-6 lg:items-start lg:[&>*]:col-start-2">
         {/* User Info */}
         <div className="flex items-center gap-3">
           <Avatar className="w-12 h-12 ring-2 ring-primary/30">
@@ -227,7 +231,7 @@ function UploadPost({ user, initialCategory }: UploadPostProps) {
         </div>
 
         {/* Image Selection */}
-        <Card className="bg-card border-border">
+        <Card className="bg-card border-border lg:col-start-1! lg:row-start-1 lg:row-span-12 lg:sticky lg:top-24">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-card-foreground">
               <Image className="w-5 h-5 text-primary" />

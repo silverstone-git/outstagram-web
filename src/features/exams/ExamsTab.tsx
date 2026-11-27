@@ -15,7 +15,7 @@ type View =
 /** Exams tab: home → runner (full-screen) → results with the per-question AI tutor. */
 export function ExamsTab({ onImmersive, onShareResult }: {
   onImmersive: (on: boolean) => void;
-  onShareResult?: (result: ExamResult, maxScore: number) => void;
+  onShareResult?: (card: File, caption: string) => void;
 }) {
   const [view, setView] = useState<View>({ name: 'home' });
   const [busy, setBusy] = useState<string | null>(null);
@@ -78,7 +78,7 @@ export function ExamsTab({ onImmersive, onShareResult }: {
   if (view.name === 'results') {
     return <ExamResults result={view.result} maxScore={view.maxScore} attemptId={view.attemptId}
       quota={quota} onQuota={setQuota} onBack={() => setView({ name: 'home' })} onRetake={view.retake}
-      onShare={onShareResult ? () => onShareResult(view.result, view.maxScore) : undefined} openChatFor={view.chat} focus={view.focus} />;
+      onPostCard={onShareResult} openChatFor={view.chat} focus={view.focus} />;
   }
   return <ExamsHome busy={busy} quota={quota} onStart={start} onOpenAttempt={openAttempt} />;
 }

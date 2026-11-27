@@ -1,6 +1,7 @@
-// "⋮" menu on posts: report to the admins (POST /posts/{id}/report), which puts the post in the admin review queue.
+// "⋮" menu on posts: on your own post, Delete; on anyone else's, report to the admins (POST /posts/{id}/report),
+// which puts the post in the admin review queue.
 import { useState } from 'react';
-import { Flag, MoreVertical } from 'lucide-react';
+import { Flag, MoreVertical, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
@@ -14,8 +15,9 @@ const REASONS: [string, string][] = [
   ['impersonation', 'Pretending to be someone'], ['personal_info', 'Shares private info'], ['other', 'Something else'],
 ];
 
-export function ReportMenu({ postId }: { postId: string }) {
+export function ReportMenu({ postId, mine = false, onDeleted }: { postId: string; mine?: boolean; onDeleted?: () => void }) {
   const [open, setOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [reason, setReason] = useState('');
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
@@ -31,6 +33,19 @@ export function ReportMenu({ postId }: { postId: string }) {
       setBusy(false);
     }
   };
+  const remove = async () => {
+    setBusy(true);
+    try {
+      await OutstagramAPI.deletePost(postId);
+      toast.success('Post deleted');
+      setConfirmDelete(false);
+      onDeleted?.();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not delete the post');
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <>
       <DropdownMenu>
@@ -40,11 +55,29 @@ export function ReportMenu({ postId }: { postId: string }) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => { setReason(''); setNote(''); setOpen(true); }} className="text-destructive">
-            <Flag className="w-4 h-4" /> Report post
-          </DropdownMenuItem>
+          {mine ? (
+            <DropdownMenuItem onSelect={() => setConfirmDelete(true)} className="text-destructive">
+              <Trash2 className="w-4 h-4" /> Delete post
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem onSelect={() => { setReason(''); setNote(''); setOpen(true); }} className="text-destructive">
+              <Flag className="w-4 h-4" /> Report post
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
+      <Dialog open={confirmDelete} onOpenChange={(o) => !busy && setConfirmDelete(o)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete this post?</DialogTitle>
+            <DialogDescription>It's removed for everyone, with its comments, likes and photos. This can't be undone.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDelete(false)} disabled={busy}>Cancel</Button>
+            <Button variant="destructive" onClick={remove} disabled={busy}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <Dialog open={open} onOpenChange={(o) => !busy && setOpen(o)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

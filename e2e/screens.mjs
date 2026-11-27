@@ -31,6 +31,7 @@ const ORIGIN = 'http://127.0.0.1:4173';
 
 const viewports = {
   phone: { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
+  tablet: { viewport: { width: 820, height: 1180 }, deviceScaleFactor: 2, hasTouch: true },
   desktop: { viewport: { width: 1280, height: 800 } },
 };
 const nav = (label) => async (page) => {
@@ -135,7 +136,28 @@ const screens = [
     await p.getByRole('button', { name: 'Delete comment' }).last().dispatchEvent('click');
     await p.getByText('Delete this comment?').waitFor(); await p.waitForTimeout(300);
   }],
-  ['report-post', true, async (p) => { await nav('Explore')(p); await p.getByRole('button', { name: 'More' }).first().click(); await p.getByRole('menuitem', { name: 'Report post' }).click(); await p.getByText('Report this post').waitFor(); }],
+  ['share-card', true, async (p) => {
+    await answerAndSubmit(p);
+    await p.getByRole('button', { name: 'Share', exact: true }).click();
+    await p.getByRole('img', { name: /^Result card/ }).waitFor();
+    await p.waitForTimeout(300);
+  }],
+  ['share-card-post', true, async (p) => {
+    await answerAndSubmit(p);
+    await p.getByRole('button', { name: 'Share', exact: true }).click();
+    await p.getByRole('img', { name: /^Result card/ }).waitFor();
+    await p.getByRole('button', { name: 'Post to feed' }).click();
+    await p.getByText('Create Post').waitFor();
+    if (!(await p.locator('textarea').first().inputValue()).startsWith('Scored ')) throw new Error('caption not prefilled');
+    await p.waitForTimeout(300);
+  }],
+  ['delete-post', true, async (p) => {
+    await nav('Explore')(p);
+    await p.getByRole('button', { name: 'More' }).first().click();
+    await p.getByRole('menuitem', { name: 'Delete post' }).click();
+    await p.getByText('Delete this post?').waitFor(); await p.waitForTimeout(300);
+  }],
+  ['report-post', true, async (p) => { await nav('Explore')(p); await p.getByRole('button', { name: 'More' }).nth(1).click(); await p.getByRole('menuitem', { name: 'Report post' }).click(); await p.getByText('Report this post').waitFor(); }],
   ['admin-signin', false, async (p) => { await p.goto(ORIGIN + BASE + 'admin/', { waitUntil: 'networkidle' }); await p.getByText('Continue with Google').waitFor(); }],
   ['admin-overview', false, adminOpen(null)],
   ['admin-queue', false, adminTab('Review queue')],
