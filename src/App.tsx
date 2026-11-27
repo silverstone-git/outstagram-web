@@ -231,8 +231,9 @@ export default function App() {
           <nav aria-label="Main" className="hidden md:flex fixed inset-y-0 left-0 z-30 w-20 lg:w-60 flex-col border-r border-border bg-card px-3 py-6">
             <button type="button" onClick={() => setCurrentScreen('dashboard')} aria-label="Outstagram home"
               className="mb-8 flex items-center justify-center lg:justify-start lg:px-3">
-              <BrandMark className="h-8 w-8 lg:hidden" />
-              <BrandLogo size="sm" className="hidden lg:inline-flex" />
+              {/* wrappers: BrandLogo sets its own inline-flex, which would beat a `hidden` on it */}
+              <span className="lg:hidden"><BrandMark className="h-8 w-8" /></span>
+              <span className="hidden lg:block"><BrandLogo size="sm" /></span>
             </button>
             <div className="flex flex-1 flex-col gap-1">
               {nav.map((n) => (
